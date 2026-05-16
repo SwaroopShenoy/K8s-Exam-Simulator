@@ -1,0 +1,11 @@
+# Development overrides: mount local questions and workspace into the container.
+# Edits to questions/ take effect immediately without rebuilding.
+# YAML files written during the exam persist in ./workspace on the host.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm simulator cka
+services:
+  simulator:
+    volumes:
+      - ./questions:/app/questions   # live-edit questions without rebuild
+      - ./workspace:/app/workspace   # persist YAML files on host after exam

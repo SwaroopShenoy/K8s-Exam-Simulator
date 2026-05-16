@@ -1,0 +1,28 @@
+{
+  "id": "cka-troubleshoot-01",
+  "weight": 8,
+  "task": "A Pod named 'broken-pod' in namespace 'default' is in CrashLoopBackOff state.\n\nTroubleshoot and fix the issue:\n  1. Identify why the pod is crashing\n  2. Fix the problem\n  3. Ensure the pod reaches Running state\n\nNote: The pod may not exist yet. Create it first with image: nginx, command: ['sh', '-c', 'sleeeep 3600']",
+  "namespace": "default",
+  "hints": [
+    "Use kubectl logs and kubectl describe",
+    "Check the command/args in the pod spec",
+    "Common issue: typo in command",
+    "Use kubectl edit or kubectl apply to fix"
+  ],
+  "detailed_hints": [
+    "kubectl describe pod broken-pod shows Events at the bottom",
+    "kubectl logs broken-pod shows the actual error output",
+    "Delete and recreate the pod with corrected command: sleep (not sleeeep)"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Pod is in Running state",
+      "command": "kubectl get pod broken-pod -n {namespace} -o jsonpath='{.status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Running"
+      }
+    }
+  ]
+}

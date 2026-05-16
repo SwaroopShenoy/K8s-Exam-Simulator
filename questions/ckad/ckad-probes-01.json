@@ -1,0 +1,35 @@
+{
+  "id": "ckad-probes-01",
+  "weight": 7,
+  "task": "Create a Deployment named 'api-app' in namespace 'default' with:\n  - Image: nginx:1.21\n  - 2 replicas\n  \nAdd the following probes to the container:\n  \n  Liveness probe:\n    - HTTP GET on path /healthz\n    - Port 80\n    - Initial delay: 10 seconds\n    - Period: 5 seconds\n  \n  Readiness probe:\n    - HTTP GET on path /ready\n    - Port 80\n    - Initial delay: 5 seconds\n    - Period: 3 seconds",
+  "namespace": "default",
+  "hints": [
+    "Create deployment first, then edit to add probes",
+    "Search 'configure liveness readiness probes' in k8s docs",
+    "Probes go under spec.containers[].livenessProbe"
+  ],
+  "detailed_hints": [
+    "kubectl create deploy api-app --image=nginx:1.21 --replicas=2 --dry-run=client -o yaml > api-app.yaml",
+    "Add livenessProbe and readinessProbe blocks under spec.template.spec.containers[0]"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Deployment exists with 2 replicas",
+      "command": "kubectl get deploy api-app -n {namespace} -o jsonpath='{.spec.replicas}'",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Liveness probe configured",
+      "command": "kubectl get deploy api-app -n {namespace} -o jsonpath='{.spec.template.spec.containers[0].livenessProbe.httpGet.path}'",
+      "expected": {
+        "type": "equals",
+        "value": "/healthz"
+      }
+    }
+  ]
+}

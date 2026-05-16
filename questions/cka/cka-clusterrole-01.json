@@ -1,0 +1,72 @@
+{
+  "id": "cka-clusterrole-01",
+  "weight": 7,
+  "task": "Create cluster-wide RBAC resources:\n\n  1. Create a ClusterRole named 'pod-reader' that allows:\n     - verbs: get, list, watch\n     - resources: pods\n\n  2. Create a ServiceAccount named 'pod-reader-sa' in namespace 'default'\n\n  3. Create a ClusterRoleBinding named 'read-pods-global' that:\n     - Binds ClusterRole 'pod-reader' to ServiceAccount 'pod-reader-sa'\n\n  4. Verify the ServiceAccount can get pods but cannot create them:\n     kubectl auth can-i get pods --as=system:serviceaccount:default:pod-reader-sa\n     kubectl auth can-i create pods --as=system:serviceaccount:default:pod-reader-sa",
+  "namespace": "default",
+  "hints": [
+    "kubectl create clusterrole --help for imperative syntax",
+    "kubectl create clusterrolebinding --help for binding syntax",
+    "ClusterRoles apply cluster-wide, not just one namespace"
+  ],
+  "detailed_hints": [
+    "kubectl create clusterrole pod-reader --verb=get,list,watch --resource=pods",
+    "kubectl create sa pod-reader-sa -n default",
+    "kubectl create clusterrolebinding read-pods-global --clusterrole=pod-reader --serviceaccount=default:pod-reader-sa"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "ClusterRole pod-reader exists with correct verbs",
+      "command": "kubectl get clusterrole pod-reader -o jsonpath='{.rules[0].verbs}'",
+      "expected": {
+        "type": "contains",
+        "value": "list"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "ClusterRole targets pods resource",
+      "command": "kubectl get clusterrole pod-reader -o jsonpath='{.rules[0].resources}'",
+      "expected": {
+        "type": "contains",
+        "value": "pods"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "ClusterRoleBinding binds to pod-reader",
+      "command": "kubectl get clusterrolebinding read-pods-global -o jsonpath='{.roleRef.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "pod-reader"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "ClusterRoleBinding subject is pod-reader-sa",
+      "command": "kubectl get clusterrolebinding read-pods-global -o jsonpath='{.subjects[0].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "pod-reader-sa"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "SA can get pods (auth can-i)",
+      "command": "kubectl auth can-i get pods --as=system:serviceaccount:default:pod-reader-sa",
+      "expected": {
+        "type": "equals",
+        "value": "yes"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "SA cannot create pods (auth can-i)",
+      "command": "kubectl auth can-i create pods --as=system:serviceaccount:default:pod-reader-sa",
+      "expected": {
+        "type": "equals",
+        "value": "no"
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "cka-deployment-01",
+  "weight": 5,
+  "task": "Create a Deployment named 'web-app' in namespace 'default' with:\n  - 3 replicas\n  - Image: nginx:1.21\n  - Resource requests: cpu=100m, memory=128Mi\n  - Resource limits: cpu=200m, memory=256Mi\n  - Label: app=web, tier=frontend\n\nThen expose it as a ClusterIP Service named 'web-service' on port 80.",
+  "namespace": "default",
+  "hints": [
+    "Use kubectl create deploy and then edit for resources",
+    "kubectl expose can create the service quickly",
+    "Verify with kubectl get deploy,svc"
+  ],
+  "detailed_hints": [
+    "kubectl create deploy web-app --image=nginx:1.21 --replicas=3 --dry-run=client -o yaml",
+    "kubectl expose deploy web-app --name=web-service --port=80"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Deployment exists with 3 replicas",
+      "command": "kubectl get deploy web-app -n {namespace} -o jsonpath='{.spec.replicas}'",
+      "expected": {
+        "type": "equals",
+        "value": "3"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment has correct resource requests",
+      "command": "kubectl get deploy web-app -n {namespace} -o jsonpath='{.spec.template.spec.containers[0].resources.requests.memory}'",
+      "expected": {
+        "type": "equals",
+        "value": "128Mi"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Service exists and targets deployment",
+      "command": "kubectl get svc web-service -n {namespace} -o jsonpath='{.spec.selector.app}'",
+      "expected": {
+        "type": "equals",
+        "value": "web"
+      }
+    }
+  ]
+}

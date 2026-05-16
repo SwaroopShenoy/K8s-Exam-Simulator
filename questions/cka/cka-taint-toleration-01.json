@@ -1,0 +1,37 @@
+{
+  "id": "cka-taint-toleration-01",
+  "weight": 6,
+  "task": "Work with taints and tolerations:\n\n  1. Taint a node of your choice with:\n     - key: gpu\n     - value: true\n     - effect: NoSchedule\n\n  2. Create a Pod named 'gpu-pod' in namespace 'default' that:\n     - Image: nginx:1.21\n     - Has a toleration for the taint: gpu=true:NoSchedule\n     - Verify the pod schedules successfully\n\n  3. Create a Pod named 'no-toleration-pod' with image nginx:1.21\n     - No toleration\n     - If it's the only tainted node in a single-node cluster, it will be Pending\n\nNote: In a single-node cluster the control plane IS the only node, so taint it\nwith 'kubectl taint nodes <node-name> gpu=true:NoSchedule' and remove it after\nwith 'kubectl taint nodes <node-name> gpu=true:NoSchedule-'",
+  "namespace": "default",
+  "hints": [
+    "kubectl taint nodes <node-name> gpu=true:NoSchedule",
+    "Toleration in pod spec: {key: gpu, operator: Equal, value: 'true', effect: NoSchedule}",
+    "kubectl taint nodes <node-name> gpu=true:NoSchedule-  (trailing dash removes the taint)"
+  ],
+  "detailed_hints": [
+    "Get node name: kubectl get nodes --no-headers -o custom-columns=NAME:.metadata.name | head -1",
+    "Taint: kubectl taint nodes <node> gpu=true:NoSchedule",
+    "Verify taint: kubectl describe node <node> | grep Taints",
+    "Pod toleration spec: tolerations: [{key: gpu, operator: Equal, value: 'true', effect: NoSchedule}]"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "gpu-pod exists",
+      "command": "kubectl get pod gpu-pod -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "gpu-pod has gpu toleration",
+      "command": "kubectl get pod gpu-pod -n {namespace} -o jsonpath='{.spec.tolerations[*].key}'",
+      "expected": {
+        "type": "contains",
+        "value": "gpu"
+      }
+    }
+  ]
+}

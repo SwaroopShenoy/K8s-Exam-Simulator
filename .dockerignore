@@ -1,0 +1,6 @@
+workspace/
+*.tar.gz
+*.md
+.git/
+__pycache__/
+*.pyc

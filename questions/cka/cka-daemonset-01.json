@@ -1,0 +1,54 @@
+{
+  "id": "cka-daemonset-01",
+  "weight": 6,
+  "task": "Create a DaemonSet named 'node-monitor' in namespace 'kube-system' that:\n  - Uses image: busybox:1.35\n  - Runs on every node including control plane nodes\n  - Command: ['/bin/sh', '-c', 'while true; do echo \"Node monitoring...\"; sleep 60; done']\n  - Has a toleration for: key=node-role.kubernetes.io/control-plane, effect=NoSchedule\n\nDaemonSets ensure exactly one pod per node. The control-plane toleration is needed\nto schedule on the master node which has a NoSchedule taint by default.",
+  "namespace": "kube-system",
+  "hints": [
+    "kubectl does not have a 'create daemonset' shortcut — write YAML directly",
+    "spec.selector.matchLabels must match spec.template.metadata.labels",
+    "Add spec.template.spec.tolerations to run on control plane"
+  ],
+  "detailed_hints": [
+    "Start from a Deployment YAML and change kind to DaemonSet",
+    "Remove spec.replicas (DaemonSets don't have replicas)",
+    "Toleration: {key: 'node-role.kubernetes.io/control-plane', operator: 'Exists', effect: 'NoSchedule'}"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "DaemonSet exists in kube-system",
+      "command": "kubectl get daemonset node-monitor -n kube-system",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "DaemonSet uses correct image",
+      "command": "kubectl get daemonset node-monitor -n kube-system -o jsonpath='{.spec.template.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "busybox:1.35"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "DaemonSet has control-plane toleration",
+      "command": "kubectl get daemonset node-monitor -n kube-system -o jsonpath='{.spec.template.spec.tolerations[*].key}'",
+      "expected": {
+        "type": "contains",
+        "value": "node-role.kubernetes.io/control-plane"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "DaemonSet has at least one pod running",
+      "command": "kubectl get daemonset node-monitor -n kube-system -o jsonpath='{.status.numberReady}'",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "id": "ckad-cronjob-01",
+  "weight": 6,
+  "task": "Create a CronJob named 'scheduled-task' in namespace 'default' that:\n  - Schedule: every minute (*/1 * * * *)\n  - Image: busybox:1.35\n  - Command: ['/bin/sh', '-c', 'date; echo Job executed']\n  - startingDeadlineSeconds: 15  (abandon job if it can't start within 15s of schedule)\n  - successfulJobsHistoryLimit: 3\n  - failedJobsHistoryLimit: 1\n\nAfter creating it, verify a Job spawned within ~90 seconds:\n  kubectl get jobs\n  kubectl logs -l job-name=<job-name>",
+  "namespace": "default",
+  "hints": [
+    "kubectl create cronjob scheduled-task --image=busybox:1.35 --schedule='*/1 * * * *' -- /bin/sh -c 'date; echo Job executed'",
+    "Edit to add startingDeadlineSeconds and history limits",
+    "kubectl get cronjob scheduled-task to watch status"
+  ],
+  "detailed_hints": [
+    "Imperative: kubectl create cronjob scheduled-task --image=busybox:1.35 --schedule='*/1 * * * *' --dry-run=client -o yaml",
+    "Add under spec: startingDeadlineSeconds: 15, successfulJobsHistoryLimit: 3, failedJobsHistoryLimit: 1"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "CronJob exists",
+      "command": "kubectl get cronjob scheduled-task -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Schedule is every minute",
+      "command": "kubectl get cronjob scheduled-task -n {namespace} -o jsonpath='{.spec.schedule}'",
+      "expected": {
+        "type": "equals",
+        "value": "*/1 * * * *"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "startingDeadlineSeconds is 15",
+      "command": "kubectl get cronjob scheduled-task -n {namespace} -o jsonpath='{.spec.startingDeadlineSeconds}'",
+      "expected": {
+        "type": "equals",
+        "value": "15"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Image is busybox:1.35",
+      "command": "kubectl get cronjob scheduled-task -n {namespace} -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "busybox:1.35"
+      }
+    }
+  ]
+}

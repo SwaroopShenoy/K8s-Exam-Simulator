@@ -1,0 +1,55 @@
+{
+  "id": "ckad-networkpolicy-01",
+  "weight": 7,
+  "task": "Implement network segmentation using NetworkPolicy:\n\n  Setup (create these first):\n    kubectl create ns frontend\n    kubectl create ns backend\n    kubectl run frontend-pod --image=nginx:1.21 -n frontend --labels=role=frontend\n    kubectl run backend-pod --image=nginx:1.21 -n backend --labels=role=backend\n\n  Task:\n  1. Create NetworkPolicy 'allow-frontend' in namespace 'backend' that:\n     - Applies to pods with label role=backend\n     - Allows ingress ONLY from pods in namespace 'frontend'\n       (use namespaceSelector matching label kubernetes.io/metadata.name=frontend)\n     - On port 80 only\n     - Denies all other ingress (implicit — just don't add other ingress rules)\n\n  2. Verify the policy is in place: kubectl describe networkpolicy allow-frontend -n backend",
+  "namespace": "backend",
+  "hints": [
+    "NetworkPolicy requires a CNI that supports it (Calico, Cilium, Weave) — Kind uses Kindnet which may not support it",
+    "namespaceSelector: {matchLabels: {'kubernetes.io/metadata.name': 'frontend'}}",
+    "An empty policyTypes: [Ingress] with no ingress rules = deny all ingress"
+  ],
+  "detailed_hints": [
+    "Create namespaces first: kubectl create ns frontend && kubectl create ns backend",
+    "NetworkPolicy spec.podSelector: {matchLabels: {role: backend}} — targets backend pods",
+    "spec.ingress[0].from[0].namespaceSelector: {matchLabels: {'kubernetes.io/metadata.name': 'frontend'}}",
+    "spec.ingress[0].ports: [{protocol: TCP, port: 80}]"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Namespace backend exists",
+      "command": "kubectl get ns backend",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "NetworkPolicy allow-frontend exists in backend namespace",
+      "command": "kubectl get networkpolicy allow-frontend -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "NetworkPolicy targets role=backend pods",
+      "command": "kubectl get networkpolicy allow-frontend -n {namespace} -o jsonpath='{.spec.podSelector.matchLabels.role}'",
+      "expected": {
+        "type": "equals",
+        "value": "backend"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Ingress port is 80",
+      "command": "kubectl get networkpolicy allow-frontend -n {namespace} -o jsonpath='{.spec.ingress[0].ports[0].port}'",
+      "expected": {
+        "type": "equals",
+        "value": "80"
+      }
+    }
+  ]
+}

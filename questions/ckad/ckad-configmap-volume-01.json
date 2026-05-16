@@ -1,0 +1,64 @@
+{
+  "id": "ckad-configmap-volume-01",
+  "weight": 7,
+  "task": "Mount configuration into a Pod using both volumes and environment variables:\n\n  1. Create ConfigMap 'app-config' in namespace 'default':\n     Data:\n       database.host: mysql.default.svc.cluster.local\n       database.port: \"5432\"\n       app.properties: |\n         debug=false\n         maxConnections=100\n\n  2. Create Secret 'app-secret' in namespace 'default':\n     Data:\n       api-key: super-secret-123\n       db-password: mysecretpassword\n\n  3. Create Pod 'config-demo' using image busybox:1.35 that:\n     - Mounts ConfigMap 'app-config' as a volume at /etc/config\n     - Mounts Secret 'app-secret' as a volume at /etc/secrets\n     - Sets env var DB_HOST from ConfigMap key 'database.host'\n     - Sets env var API_KEY from Secret key 'api-key'\n     - Command: ['sh', '-c', 'ls /etc/config && ls /etc/secrets && sleep 3600']",
+  "namespace": "default",
+  "hints": [
+    "kubectl create cm app-config --from-literal=database.host=... --from-literal=database.port=5432",
+    "kubectl create secret generic app-secret --from-literal=api-key=super-secret-123 --from-literal=db-password=...",
+    "In pod spec: volumes reference the CM/Secret by name, containers.volumeMounts reference the volume name"
+  ],
+  "detailed_hints": [
+    "Volume: {name: config-vol, configMap: {name: app-config}}",
+    "VolumeMount: {name: config-vol, mountPath: /etc/config}",
+    "Env from CM: {name: DB_HOST, valueFrom: {configMapKeyRef: {name: app-config, key: database.host}}}",
+    "Env from Secret: {name: API_KEY, valueFrom: {secretKeyRef: {name: app-secret, key: api-key}}}"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "ConfigMap app-config has database.host key",
+      "command": "kubectl get cm app-config -n {namespace} -o jsonpath='{.data.database\\.host}'",
+      "expected": {
+        "type": "equals",
+        "value": "mysql.default.svc.cluster.local"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Secret app-secret has api-key",
+      "command": "kubectl get secret app-secret -n {namespace} -o jsonpath='{.data.api-key}'",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod config-demo is running",
+      "command": "kubectl get pod config-demo -n {namespace} -o jsonpath='{.status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Running"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod mounts a configMap volume",
+      "command": "kubectl get pod config-demo -n {namespace} -o jsonpath='{.spec.volumes[0].configMap.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "app-config"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod has DB_HOST env var from ConfigMap",
+      "command": "kubectl get pod config-demo -n {namespace} -o jsonpath='{.spec.containers[0].env[?(@.name==\"DB_HOST\")].valueFrom.configMapKeyRef.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "app-config"
+      }
+    }
+  ]
+}

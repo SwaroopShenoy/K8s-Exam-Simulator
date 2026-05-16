@@ -1,0 +1,44 @@
+{
+  "id": "cka-rbac-01",
+  "weight": 7,
+  "task": "Create RBAC resources for a developer named 'john':\n\n  1. Create a Role named 'dev-role' in namespace 'development' that allows:\n     - get, list, watch on pods\n     - create, delete on pods\n  \n  2. Create a RoleBinding named 'dev-binding' that:\n     - Binds the 'dev-role' to user 'john'\n     - In namespace 'development'\n\nFirst create the namespace 'development' if it doesn't exist.",
+  "namespace": "development",
+  "hints": [
+    "kubectl create ns development",
+    "kubectl create role --help shows syntax",
+    "kubectl create rolebinding --help for binding"
+  ],
+  "detailed_hints": [
+    "kubectl create role dev-role --verb=get,list,watch,create,delete --resource=pods -n development",
+    "kubectl create rolebinding dev-binding --role=dev-role --user=john -n development"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Namespace exists",
+      "command": "kubectl get ns development",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Role exists with correct permissions",
+      "command": "kubectl get role dev-role -n development -o jsonpath='{.rules[0].verbs}'",
+      "expected": {
+        "type": "contains",
+        "value": "get"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "RoleBinding exists",
+      "command": "kubectl get rolebinding dev-binding -n development -o jsonpath='{.subjects[0].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "john"
+      }
+    }
+  ]
+}

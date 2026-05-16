@@ -1,0 +1,36 @@
+{
+  "id": "ckad-multicontainer-01",
+  "weight": 8,
+  "task": "Create a Pod named 'sidecar-pod' in namespace 'default' with:\n\n  Main container:\n    - Name: app\n    - Image: nginx:1.21\n    - Writes logs to /var/log/nginx/access.log\n  \n  Sidecar container:\n    - Name: log-shipper\n    - Image: busybox:1.35\n    - Command: ['sh', '-c', 'tail -f /var/log/nginx/access.log']\n    - Shares the log directory with main container\n\nUse an emptyDir volume named 'logs' mounted at /var/log/nginx in both containers.",
+  "namespace": "default",
+  "hints": [
+    "Generate pod with kubectl run, then edit to add second container",
+    "Both containers need volumeMounts to the same volume",
+    "emptyDir volume is ephemeral but shared between containers"
+  ],
+  "detailed_hints": [
+    "kubectl run sidecar-pod --image=nginx:1.21 --dry-run=client -o yaml > sidecar-pod.yaml",
+    "Add the second container under spec.containers[] in the YAML",
+    "Add spec.volumes[] with emptyDir, then volumeMounts in each container"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Pod has both containers",
+      "command": "kubectl get pod sidecar-pod -n {namespace} -o jsonpath='{.spec.containers[*].name}'",
+      "expected": {
+        "type": "contains",
+        "value": "app"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod is running",
+      "command": "kubectl get pod sidecar-pod -n {namespace} -o jsonpath='{.status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Running"
+      }
+    }
+  ]
+}

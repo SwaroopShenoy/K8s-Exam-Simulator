@@ -1,0 +1,45 @@
+{
+  "id": "ckad-job-01",
+  "weight": 6,
+  "task": "Create a Job named 'batch-job' in namespace 'default' that:\n  - Uses image: perl:5.34\n  - Runs command: perl -Mbignum=bpi -wle 'print bpi(2000)'\n  - Completes successfully 3 times\n  - Runs 2 pods in parallel\n  - Has a backoff limit of 4",
+  "namespace": "default",
+  "hints": [
+    "Use kubectl create job with --dry-run to get template",
+    "Edit the YAML to add completions and parallelism",
+    "spec.completions controls how many successful runs",
+    "spec.parallelism controls concurrent pods"
+  ],
+  "detailed_hints": [
+    "kubectl create job batch-job --image=perl:5.34 --dry-run=client -o yaml > batch-job.yaml",
+    "Add spec.completions: 3, spec.parallelism: 2, spec.backoffLimit: 4"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Job exists",
+      "command": "kubectl get job batch-job -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Job has correct completions",
+      "command": "kubectl get job batch-job -n {namespace} -o jsonpath='{.spec.completions}'",
+      "expected": {
+        "type": "equals",
+        "value": "3"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Job has correct parallelism",
+      "command": "kubectl get job batch-job -n {namespace} -o jsonpath='{.spec.parallelism}'",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    }
+  ]
+}

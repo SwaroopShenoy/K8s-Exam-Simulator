@@ -1,0 +1,36 @@
+{
+  "id": "cka-networkpolicy-01",
+  "weight": 6,
+  "task": "Create a NetworkPolicy named 'backend-policy' in namespace 'default' that:\n  - Applies to Pods with label app=backend\n  - Allows ingress traffic ONLY from Pods with label app=frontend\n  - Allows traffic on port 8080\n  - Denies all other ingress traffic",
+  "namespace": "default",
+  "hints": [
+    "Search 'network policy' in k8s docs for examples",
+    "Use podSelector for both target and source",
+    "Remember to specify the port in the ingress rule"
+  ],
+  "detailed_hints": [
+    "The policy spec.podSelector targets which pods it applies to",
+    "spec.ingress[].from[].podSelector selects allowed sources",
+    "spec.ingress[].ports specifies allowed ports"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "NetworkPolicy exists",
+      "command": "kubectl get networkpolicy backend-policy -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "yaml_file",
+      "description": "NetworkPolicy YAML is correct",
+      "filename": "backend-policy.yaml",
+      "required_fields": {
+        "kind": "NetworkPolicy",
+        "metadata.name": "backend-policy"
+      }
+    }
+  ]
+}

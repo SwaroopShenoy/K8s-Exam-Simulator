@@ -1,0 +1,55 @@
+{
+  "id": "ckad-security-context-01",
+  "weight": 6,
+  "task": "Create a Pod named 'secure-pod' in namespace 'default' with security hardening:\n\n  Pod-level securityContext:\n    - runAsUser: 1000\n    - runAsGroup: 3000\n    - fsGroup: 2000\n\n  Container:\n    - Name: app\n    - Image: nginx:1.21\n    - Container-level securityContext:\n        - readOnlyRootFilesystem: true\n        - allowPrivilegeEscalation: false\n    - Resource requests: cpu=100m, memory=128Mi\n    - Resource limits:   cpu=500m, memory=256Mi\n\nNote: nginx may need a writable /tmp to start with readOnlyRootFilesystem.\nAdd an emptyDir volume mounted at /tmp if the container fails to start.",
+  "namespace": "default",
+  "hints": [
+    "securityContext at pod level and container level are different fields",
+    "Pod-level: spec.securityContext — affects all containers",
+    "Container-level: spec.containers[].securityContext — overrides pod level"
+  ],
+  "detailed_hints": [
+    "kubectl run secure-pod --image=nginx:1.21 --dry-run=client -o yaml > secure-pod.yaml",
+    "Add spec.securityContext: {runAsUser: 1000, runAsGroup: 3000, fsGroup: 2000}",
+    "Add spec.containers[0].securityContext: {readOnlyRootFilesystem: true, allowPrivilegeEscalation: false}",
+    "If nginx fails: add volume emptyDir at /tmp and /var/run and /var/cache/nginx"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Pod-level runAsUser is 1000",
+      "command": "kubectl get pod secure-pod -n {namespace} -o jsonpath='{.spec.securityContext.runAsUser}'",
+      "expected": {
+        "type": "equals",
+        "value": "1000"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Container readOnlyRootFilesystem is true",
+      "command": "kubectl get pod secure-pod -n {namespace} -o jsonpath='{.spec.containers[0].securityContext.readOnlyRootFilesystem}'",
+      "expected": {
+        "type": "equals",
+        "value": "true"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "allowPrivilegeEscalation is false",
+      "command": "kubectl get pod secure-pod -n {namespace} -o jsonpath='{.spec.containers[0].securityContext.allowPrivilegeEscalation}'",
+      "expected": {
+        "type": "equals",
+        "value": "false"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "CPU limit is 500m",
+      "command": "kubectl get pod secure-pod -n {namespace} -o jsonpath='{.spec.containers[0].resources.limits.cpu}'",
+      "expected": {
+        "type": "equals",
+        "value": "500m"
+      }
+    }
+  ]
+}

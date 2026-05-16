@@ -1,0 +1,54 @@
+{
+  "id": "ckad-pdb-01",
+  "weight": 5,
+  "task": "Protect a critical application from disruption:\n\n  1. Create Deployment 'critical-app' in namespace 'default':\n     - Image: nginx:1.21\n     - 3 replicas\n     - Label: app=critical\n\n  2. Create a PodDisruptionBudget named 'critical-pdb' that:\n     - Targets pods with label app=critical\n     - minAvailable: 2  (at least 2 pods must remain available during disruptions)\n\nPodDisruptionBudgets prevent voluntary disruptions (node drains, cluster upgrades)\nfrom taking down too many pods simultaneously.",
+  "namespace": "default",
+  "hints": [
+    "kubectl create poddisruptionbudget --help",
+    "PDB selector must match the deployment's pod labels",
+    "minAvailable can be absolute number or percentage (e.g., '50%')"
+  ],
+  "detailed_hints": [
+    "kubectl create deploy critical-app --image=nginx:1.21 --replicas=3",
+    "kubectl label deployment critical-app app=critical  (or add in YAML)",
+    "kubectl create pdb critical-pdb --selector=app=critical --min-available=2 -n default"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "PDB critical-pdb exists",
+      "command": "kubectl get pdb critical-pdb -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "PDB minAvailable is 2",
+      "command": "kubectl get pdb critical-pdb -n {namespace} -o jsonpath='{.spec.minAvailable}'",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "PDB targets app=critical",
+      "command": "kubectl get pdb critical-pdb -n {namespace} -o jsonpath='{.spec.selector.matchLabels.app}'",
+      "expected": {
+        "type": "equals",
+        "value": "critical"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment critical-app has 3 replicas",
+      "command": "kubectl get deploy critical-app -n {namespace} -o jsonpath='{.spec.replicas}'",
+      "expected": {
+        "type": "equals",
+        "value": "3"
+      }
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "id": "ckad-ingress-01",
+  "weight": 7,
+  "task": "Create an Ingress for two services in namespace 'default':\n\n  1. Create Deployment 'api-app' (image: nginx:1.21) and Service 'api-svc' on port 8080 (targetPort 80)\n\n  2. Create Deployment 'web-app' (image: nginx:1.21) and Service 'web-svc' on port 80\n\n  3. Create Ingress 'app-ingress' with:\n     - ingressClassName: nginx\n     - Host: example.com\n     - /api  (Prefix) → api-svc:8080\n     - /     (Prefix) → web-svc:80\n\n  4. Verify: kubectl describe ingress app-ingress",
+  "namespace": "default",
+  "hints": [
+    "kubectl create ingress has a --rule flag: host/path=service:port",
+    "Prefix pathType catches /api, /api/v1, /api/v2, etc.",
+    "kubectl create ingress app-ingress --rule='example.com/api*=api-svc:8080' --rule='example.com/*=web-svc:80'"
+  ],
+  "detailed_hints": [
+    "kubectl create deploy api-app --image=nginx:1.21 && kubectl expose deploy api-app --name=api-svc --port=8080 --target-port=80",
+    "kubectl create deploy web-app --image=nginx:1.21 && kubectl expose deploy web-app --name=web-svc --port=80",
+    "kubectl create ingress app-ingress --class=nginx --rule='example.com/api*=api-svc:8080' --rule='example.com/*=web-svc:80'"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Ingress app-ingress exists",
+      "command": "kubectl get ingress app-ingress -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Ingress host is example.com",
+      "command": "kubectl get ingress app-ingress -n {namespace} -o jsonpath='{.spec.rules[0].host}'",
+      "expected": {
+        "type": "equals",
+        "value": "example.com"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "api-svc service exists on port 8080",
+      "command": "kubectl get svc api-svc -n {namespace} -o jsonpath='{.spec.ports[0].port}'",
+      "expected": {
+        "type": "equals",
+        "value": "8080"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "web-svc service exists",
+      "command": "kubectl get svc web-svc -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    }
+  ]
+}

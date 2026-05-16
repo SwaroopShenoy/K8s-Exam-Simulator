@@ -1,0 +1,54 @@
+{
+  "id": "cka-pv-storageclass-01",
+  "weight": 7,
+  "task": "Create storage resources and mount them in a pod:\n\n  1. Create a PersistentVolume named 'data-pv' with:\n     - Capacity: 5Gi\n     - Access mode: ReadWriteOnce\n     - hostPath: /data\n     - No storageClassName (storageClassName: \"\")\n     - Reclaim policy: Retain\n\n  2. Create a PersistentVolumeClaim named 'data-pvc' in namespace 'default' that:\n     - Requests 3Gi\n     - Access mode: ReadWriteOnce\n     - storageClassName: \"\" (binds to the PV above)\n\n  3. Create a Pod named 'data-pod' using image busybox:1.35 that:\n     - Mounts 'data-pvc' at /mnt/data\n     - Command: ['sh', '-c', 'echo hello > /mnt/data/test.txt && sleep 3600']\n\n  4. Verify the pod wrote the file: kubectl exec data-pod -- cat /mnt/data/test.txt",
+  "namespace": "default",
+  "hints": [
+    "PV and PVC storageClassName must match exactly (both empty string for manual binding)",
+    "PV capacity must be >= PVC request",
+    "Wait for PVC to be Bound before creating the pod"
+  ],
+  "detailed_hints": [
+    "PV spec: capacity.storage: 5Gi, accessModes: [ReadWriteOnce], hostPath.path: /data, storageClassName: ''",
+    "PVC spec: resources.requests.storage: 3Gi, accessModes: [ReadWriteOnce], storageClassName: ''",
+    "Check binding: kubectl get pvc data-pvc  (status should be Bound)"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "PV capacity is 5Gi",
+      "command": "kubectl get pv data-pv -o jsonpath='{.spec.capacity.storage}'",
+      "expected": {
+        "type": "equals",
+        "value": "5Gi"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "PV reclaim policy is Retain",
+      "command": "kubectl get pv data-pv -o jsonpath='{.spec.persistentVolumeReclaimPolicy}'",
+      "expected": {
+        "type": "equals",
+        "value": "Retain"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "PVC is Bound",
+      "command": "kubectl get pvc data-pvc -n {namespace} -o jsonpath='{.status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Bound"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod mounts the PVC",
+      "command": "kubectl get pod data-pod -n {namespace} -o jsonpath='{.spec.volumes[0].persistentVolumeClaim.claimName}'",
+      "expected": {
+        "type": "equals",
+        "value": "data-pvc"
+      }
+    }
+  ]
+}

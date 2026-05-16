@@ -1,0 +1,28 @@
+{
+  "id": "cka-node-drain-01",
+  "weight": 5,
+  "task": "Perform a controlled node maintenance procedure:\n\n  1. List nodes and identify a worker node (not the control plane)\n  2. Cordon the node to prevent new pods from being scheduled on it\n  3. Drain the node: evict all pods, ignore DaemonSets, 30-second grace period\n  4. After maintenance, uncordon the node to return it to service\n\nNote: If you only have a single-node cluster, practice the cordon/uncordon steps\nand document the drain command without executing the full drain.",
+  "namespace": "default",
+  "hints": [
+    "kubectl cordon <node-name>",
+    "kubectl drain <node-name> --ignore-daemonsets --grace-period=30",
+    "kubectl uncordon <node-name> when maintenance is complete"
+  ],
+  "detailed_hints": [
+    "kubectl get nodes -o wide   # identify worker nodes",
+    "kubectl cordon <node>       # marks node unschedulable",
+    "kubectl drain <node> --ignore-daemonsets --delete-emptydir-data --grace-period=30",
+    "kubectl uncordon <node>     # returns node to service"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "At least one node exists in the cluster",
+      "command": "kubectl get nodes --no-headers",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    }
+  ]
+}

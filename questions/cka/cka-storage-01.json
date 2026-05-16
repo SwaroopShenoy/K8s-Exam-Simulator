@@ -1,0 +1,45 @@
+{
+  "id": "cka-storage-01",
+  "weight": 7,
+  "task": "Create a PersistentVolume named 'task-pv' with the following specifications:\n  - Capacity: 2Gi\n  - Access mode: ReadWriteOnce\n  - hostPath: /mnt/data\n  - No storageClassName\n\nThen create a PersistentVolumeClaim named 'task-pvc' in namespace 'default' that:\n  - Requests 1Gi storage\n  - Uses access mode ReadWriteOnce\n  - Binds to the PV you created\n\nFinally, create a Pod named 'task-pod' that:\n  - Uses image nginx:1.21\n  - Mounts the PVC at /usr/share/nginx/html",
+  "namespace": "default",
+  "hints": [
+    "Use kubectl create and --dry-run=client -o yaml to generate templates",
+    "PV and PVC must have matching access modes and capacity",
+    "Check if PVC is Bound before creating the Pod"
+  ],
+  "detailed_hints": [
+    "Search 'persistent volumes' in k8s docs",
+    "PV capacity must be >= PVC request",
+    "Use kubectl describe pvc to check binding status"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "PersistentVolume exists with correct capacity",
+      "command": "kubectl get pv task-pv -o jsonpath='{.spec.capacity.storage}'",
+      "expected": {
+        "type": "equals",
+        "value": "2Gi"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "PVC is bound to PV",
+      "command": "kubectl get pvc task-pvc -n {namespace} -o jsonpath='{.status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Bound"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod is running and using the PVC",
+      "command": "kubectl get pod task-pod -n {namespace} -o jsonpath='{.spec.volumes[0].persistentVolumeClaim.claimName}'",
+      "expected": {
+        "type": "equals",
+        "value": "task-pvc"
+      }
+    }
+  ]
+}

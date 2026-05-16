@@ -1,0 +1,54 @@
+{
+  "id": "ckad-init-container-01",
+  "weight": 7,
+  "task": "Create a Pod named 'init-demo' in namespace 'default' with:\n\n  Init container:\n    - Name: init-writer\n    - Image: busybox:1.35\n    - Command: ['/bin/sh', '-c', 'echo init-complete > /work-dir/status.txt']\n    - Mounts emptyDir volume 'shared-data' at /work-dir\n\n  Main container:\n    - Name: web\n    - Image: nginx:1.21\n    - Mounts the same volume 'shared-data' at /usr/share/nginx/html\n\nInit containers run to completion before the main container starts.\nVerify: kubectl exec init-demo -- cat /usr/share/nginx/html/status.txt",
+  "namespace": "default",
+  "hints": [
+    "No imperative shortcut for init containers — write YAML",
+    "spec.initContainers[] is a sibling of spec.containers[]",
+    "Volume must be declared in spec.volumes[] and mounted in both containers"
+  ],
+  "detailed_hints": [
+    "kubectl run init-demo --image=nginx:1.21 --dry-run=client -o yaml > init-demo.yaml",
+    "Add spec.initContainers: [{name: init-writer, image: busybox:1.35, command: [...], volumeMounts: [...]}]",
+    "Add spec.volumes: [{name: shared-data, emptyDir: {}}]"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Pod is Running",
+      "command": "kubectl get pod init-demo -n {namespace} -o jsonpath='{.status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Running"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod has an init container",
+      "command": "kubectl get pod init-demo -n {namespace} -o jsonpath='{.spec.initContainers[0].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "init-writer"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Init container uses busybox:1.35",
+      "command": "kubectl get pod init-demo -n {namespace} -o jsonpath='{.spec.initContainers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "busybox:1.35"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "emptyDir volume is defined",
+      "command": "kubectl get pod init-demo -n {namespace} -o jsonpath='{.spec.volumes[0].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "shared-data"
+      }
+    }
+  ]
+}

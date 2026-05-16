@@ -1,0 +1,31 @@
+{
+  "id": "cka-etcd-backup-01",
+  "weight": 7,
+  "task": "Create a snapshot backup of the etcd database.\n\nRequirements:\n  - Save the backup to: /var/backup/etcd-snapshot.db\n  - Create the directory if it doesn't exist\n  - Use the etcd certificates from /etc/kubernetes/pki/etcd/\n\nThen verify the snapshot is valid.\n\nThe etcd endpoint is typically https://127.0.0.1:2379 on kubeadm clusters.\nCertificate paths:\n  --cacert  /etc/kubernetes/pki/etcd/ca.crt\n  --cert    /etc/kubernetes/pki/etcd/server.crt\n  --key     /etc/kubernetes/pki/etcd/server.key",
+  "namespace": "kube-system",
+  "hints": [
+    "Install etcdctl if not present: apt install etcd-client",
+    "ETCDCTL_API=3 etcdctl snapshot save /var/backup/etcd-snapshot.db --endpoints=... --cacert=... --cert=... --key=...",
+    "Verify: ETCDCTL_API=3 etcdctl snapshot status /var/backup/etcd-snapshot.db"
+  ],
+  "detailed_hints": [
+    "mkdir -p /var/backup",
+    "ETCDCTL_API=3 etcdctl snapshot save /var/backup/etcd-snapshot.db \\",
+    "  --endpoints=https://127.0.0.1:2379 \\",
+    "  --cacert=/etc/kubernetes/pki/etcd/ca.crt \\",
+    "  --cert=/etc/kubernetes/pki/etcd/server.crt \\",
+    "  --key=/etc/kubernetes/pki/etcd/server.key",
+    "Then verify: ETCDCTL_API=3 etcdctl snapshot status /var/backup/etcd-snapshot.db --write-out=table"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "etcd pod is running in kube-system",
+      "command": "kubectl get pods -n kube-system -l component=etcd -o jsonpath='{.items[0].status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Running"
+      }
+    }
+  ]
+}

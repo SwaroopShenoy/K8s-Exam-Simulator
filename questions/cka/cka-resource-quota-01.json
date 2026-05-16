@@ -1,0 +1,63 @@
+{
+  "id": "cka-resource-quota-01",
+  "weight": 6,
+  "task": "Set up resource governance for namespace 'restricted-ns':\n\n  1. Create the namespace 'restricted-ns'\n\n  2. Create a ResourceQuota named 'ns-quota' with:\n     - pods: 10\n     - requests.cpu: 2\n     - requests.memory: 2Gi\n     - limits.cpu: 4\n     - limits.memory: 4Gi\n\n  3. Create a LimitRange named 'ns-limits' with container defaults:\n     - Default limits:   cpu=500m, memory=512Mi\n     - Default requests: cpu=100m, memory=128Mi\n\nLimitRange sets defaults so pods without explicit limits still get bounded.",
+  "namespace": "restricted-ns",
+  "hints": [
+    "kubectl create namespace restricted-ns",
+    "ResourceQuota and LimitRange both require YAML — no imperative shortcuts",
+    "LimitRange spec.limits[].type must be 'Container'"
+  ],
+  "detailed_hints": [
+    "ResourceQuota: apiVersion: v1, kind: ResourceQuota",
+    "spec.hard: {'pods': '10', 'requests.cpu': '2', 'requests.memory': '2Gi', 'limits.cpu': '4', 'limits.memory': '4Gi'}",
+    "LimitRange: spec.limits[0]: {type: Container, default: {cpu: 500m, memory: 512Mi}, defaultRequest: {cpu: 100m, memory: 128Mi}}"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Namespace restricted-ns exists",
+      "command": "kubectl get ns restricted-ns",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "ResourceQuota pod limit is 10",
+      "command": "kubectl get resourcequota ns-quota -n {namespace} -o jsonpath='{.spec.hard.pods}'",
+      "expected": {
+        "type": "equals",
+        "value": "10"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "ResourceQuota CPU request limit is 2",
+      "command": "kubectl get resourcequota ns-quota -n {namespace} -o jsonpath='{.spec.hard.requests\\.cpu}'",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "LimitRange exists",
+      "command": "kubectl get limitrange ns-limits -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "LimitRange default memory limit is 512Mi",
+      "command": "kubectl get limitrange ns-limits -n {namespace} -o jsonpath='{.spec.limits[0].default.memory}'",
+      "expected": {
+        "type": "equals",
+        "value": "512Mi"
+      }
+    }
+  ]
+}

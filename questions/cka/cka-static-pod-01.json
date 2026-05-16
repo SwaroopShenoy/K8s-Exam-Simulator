@@ -1,0 +1,36 @@
+{
+  "id": "cka-static-pod-01",
+  "weight": 5,
+  "task": "Create a static pod named 'static-nginx' on the control plane node.\n\nRequirements:\n  - Image: nginx:1.21\n  - Place the manifest at: /etc/kubernetes/manifests/static-nginx.yaml\n  - The pod should appear in the default namespace\n\nStatic pods are managed directly by the kubelet — no Deployment or ReplicaSet needed.\nThe kubelet watches the manifests directory and automatically creates/deletes pods.",
+  "namespace": "default",
+  "hints": [
+    "Generate the manifest: kubectl run static-nginx --image=nginx:1.21 --dry-run=client -o yaml",
+    "Copy the manifest to /etc/kubernetes/manifests/static-nginx.yaml",
+    "The kubelet will pick it up within a few seconds — check with kubectl get pods"
+  ],
+  "detailed_hints": [
+    "kubectl run static-nginx --image=nginx:1.21 --dry-run=client -o yaml > /etc/kubernetes/manifests/static-nginx.yaml",
+    "The pod name in kubectl will appear as static-nginx-<nodename>",
+    "ownerReferences[0].kind will be 'Node' (not ReplicaSet), confirming it's static"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Static pod is Running",
+      "command": "kubectl get pods -o jsonpath='{.items[?(@.metadata.ownerReferences[0].kind==\"Node\")].status.phase}' | grep -c Running",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Static pod uses nginx:1.21",
+      "command": "kubectl get pods -o jsonpath='{.items[?(@.metadata.ownerReferences[0].kind==\"Node\")].spec.containers[0].image}'",
+      "expected": {
+        "type": "contains",
+        "value": "nginx:1.21"
+      }
+    }
+  ]
+}

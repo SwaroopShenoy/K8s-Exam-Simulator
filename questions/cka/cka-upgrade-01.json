@@ -1,0 +1,36 @@
+{
+  "id": "cka-upgrade-01",
+  "weight": 7,
+  "task": "Perform a Kubernetes cluster upgrade using kubeadm.\n\nSteps (adjust version numbers to what's available on your cluster):\n\n  1. Check current version and available upgrades:\n     kubeadm upgrade plan\n\n  2. On the control plane node:\n     a. Upgrade kubeadm:  apt-mark unhold kubeadm && apt install kubeadm=1.XX.X-* && apt-mark hold kubeadm\n     b. Verify plan:      kubeadm upgrade plan\n     c. Apply upgrade:    kubeadm upgrade apply v1.XX.X\n     d. Upgrade kubelet:  apt-mark unhold kubelet kubectl && apt install kubelet=1.XX.X-* kubectl=1.XX.X-* && apt-mark hold kubelet kubectl\n     e. Restart:          systemctl daemon-reload && systemctl restart kubelet\n\n  3. On each worker node (SSH in, then):\n     a. Drain from control plane: kubectl drain <node> --ignore-daemonsets\n     b. Upgrade kubeadm + apply node upgrade: kubeadm upgrade node\n     c. Upgrade kubelet, restart\n     d. Uncordon: kubectl uncordon <node>\n\n  4. Verify all nodes show the new version: kubectl get nodes",
+  "namespace": "kube-system",
+  "hints": [
+    "kubeadm upgrade plan shows available versions",
+    "Always upgrade control plane first, then workers",
+    "Drain each worker before upgrading it"
+  ],
+  "detailed_hints": [
+    "Use 'apt-cache madison kubeadm' to see available versions",
+    "Hold packages after upgrade to prevent unintentional upgrades: apt-mark hold kubeadm kubelet kubectl",
+    "Check node versions after: kubectl get nodes -o wide"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "All nodes are Ready",
+      "command": "kubectl get nodes --no-headers | grep -c Ready",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "kube-apiserver is running",
+      "command": "kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Running"
+      }
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "id": "cka-ingress-01",
+  "weight": 7,
+  "task": "Create an Ingress resource with path-based routing:\n\n  1. Create Deployment 'api-backend' (image: nginx:1.21, 1 replica) in namespace 'default'\n     Expose as ClusterIP Service 'api-svc' on port 8080 (targetPort 80)\n\n  2. Create Deployment 'web-frontend' (image: nginx:1.21, 1 replica) in namespace 'default'\n     Expose as ClusterIP Service 'web-svc' on port 80\n\n  3. Create an Ingress named 'app-ingress' with:\n     - ingressClassName: nginx\n     - Host: example.com\n     - Path /api  → api-svc:8080  (pathType: Prefix)\n     - Path /     → web-svc:80   (pathType: Prefix)\n\nNote: An Ingress controller must be installed for traffic to actually flow,\nbut the Ingress object itself can be created and validated without one.",
+  "namespace": "default",
+  "hints": [
+    "kubectl create ingress has imperative support: kubectl create ingress --help",
+    "Paths use pathType: Prefix or Exact",
+    "ingressClassName references which Ingress controller to use (nginx, traefik, etc.)"
+  ],
+  "detailed_hints": [
+    "kubectl create deploy api-backend --image=nginx:1.21 && kubectl expose deploy api-backend --name=api-svc --port=8080 --target-port=80",
+    "kubectl create deploy web-frontend --image=nginx:1.21 && kubectl expose deploy web-frontend --name=web-svc --port=80",
+    "kubectl create ingress app-ingress --rule='example.com/api*=api-svc:8080' --rule='example.com/*=web-svc:80' --class=nginx"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Ingress app-ingress exists",
+      "command": "kubectl get ingress app-ingress -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Ingress has host example.com",
+      "command": "kubectl get ingress app-ingress -n {namespace} -o jsonpath='{.spec.rules[0].host}'",
+      "expected": {
+        "type": "equals",
+        "value": "example.com"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "api-svc service exists",
+      "command": "kubectl get svc api-svc -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "web-svc service exists",
+      "command": "kubectl get svc web-svc -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    }
+  ]
+}

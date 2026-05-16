@@ -1,0 +1,54 @@
+{
+  "id": "ckad-hpa-01",
+  "weight": 5,
+  "task": "Create a Deployment and configure autoscaling:\n\n  1. Create Deployment 'scalable-app' in namespace 'default':\n     - Image: nginx:1.21\n     - 2 replicas\n     - Resource requests: cpu=100m, memory=128Mi  (required for HPA to work)\n\n  2. Create a HorizontalPodAutoscaler named 'scalable-app-hpa' that:\n     - Targets Deployment 'scalable-app'\n     - Minimum replicas: 2\n     - Maximum replicas: 10\n     - Target CPU utilization: 70%\n\nNote: HPA requires the Metrics Server to be installed to actually scale.\nThe HPA object can be created and validated without it.",
+  "namespace": "default",
+  "hints": [
+    "kubectl autoscale deployment scalable-app --cpu-percent=70 --min=2 --max=10",
+    "Resource requests on containers are required for CPU-based HPA",
+    "kubectl get hpa to see current state"
+  ],
+  "detailed_hints": [
+    "kubectl create deploy scalable-app --image=nginx:1.21 --replicas=2",
+    "kubectl set resources deploy scalable-app --requests=cpu=100m,memory=128Mi",
+    "kubectl autoscale deployment scalable-app --cpu-percent=70 --min=2 --max=10 -n default"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "HPA exists",
+      "command": "kubectl get hpa scalable-app-hpa -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "HPA targets scalable-app",
+      "command": "kubectl get hpa scalable-app-hpa -n {namespace} -o jsonpath='{.spec.scaleTargetRef.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "scalable-app"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "HPA min replicas is 2",
+      "command": "kubectl get hpa scalable-app-hpa -n {namespace} -o jsonpath='{.spec.minReplicas}'",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "HPA max replicas is 10",
+      "command": "kubectl get hpa scalable-app-hpa -n {namespace} -o jsonpath='{.spec.maxReplicas}'",
+      "expected": {
+        "type": "equals",
+        "value": "10"
+      }
+    }
+  ]
+}

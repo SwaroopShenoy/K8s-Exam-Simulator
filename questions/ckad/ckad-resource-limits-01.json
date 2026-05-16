@@ -1,0 +1,46 @@
+{
+  "id": "ckad-resource-limits-01",
+  "weight": 5,
+  "task": "Create a Pod with explicit resource management:\n\n  Pod named 'resource-pod' in namespace 'default':\n    - Image: nginx:1.21\n    - Resource requests:\n        cpu: 250m\n        memory: 64Mi\n    - Resource limits:\n        cpu: 500m\n        memory: 128Mi\n\nThen update the pod (via a Deployment) to use different limits:\n\n  1. Create Deployment 'resource-app' (same image + resources)\n  2. Update limits to cpu=1, memory=256Mi:\n     kubectl set resources deployment resource-app --limits=cpu=1,memory=256Mi\n  3. Verify the rollout completes",
+  "namespace": "default",
+  "hints": [
+    "kubectl run resource-pod --image=nginx:1.21 --requests='cpu=250m,memory=64Mi' --limits='cpu=500m,memory=128Mi'",
+    "kubectl set resources deployment <name> --requests=... --limits=... updates containers imperatively",
+    "Requests: what the scheduler uses for placement. Limits: the hard cap enforced by kubelet."
+  ],
+  "detailed_hints": [
+    "kubectl run resource-pod --image=nginx:1.21 --requests='cpu=250m,memory=64Mi' --limits='cpu=500m,memory=128Mi'",
+    "kubectl create deploy resource-app --image=nginx:1.21",
+    "kubectl set resources deploy resource-app --requests=cpu=250m,memory=64Mi --limits=cpu=500m,memory=128Mi",
+    "kubectl set resources deploy resource-app --limits=cpu=1,memory=256Mi"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "resource-pod CPU request is 250m",
+      "command": "kubectl get pod resource-pod -n {namespace} -o jsonpath='{.spec.containers[0].resources.requests.cpu}'",
+      "expected": {
+        "type": "equals",
+        "value": "250m"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "resource-pod memory limit is 128Mi",
+      "command": "kubectl get pod resource-pod -n {namespace} -o jsonpath='{.spec.containers[0].resources.limits.memory}'",
+      "expected": {
+        "type": "equals",
+        "value": "128Mi"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "resource-app Deployment exists",
+      "command": "kubectl get deploy resource-app -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    }
+  ]
+}

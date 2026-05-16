@@ -1,0 +1,14 @@
+services:
+  simulator:
+    build: .
+    image: k8s-exam-simulator
+    stdin_open: true   # docker run -i
+    tty: true          # docker run -t
+    network_mode: host # lets kubectl reach 127.0.0.1 (Kind/minikube on Linux)
+    volumes:
+      - ${HOME}/.kube:/root/.kube:ro  # kubeconfig (read-only)
+    environment:
+      - KUBECONFIG=/root/.kube/config
+    # questions/ and workspace/ are baked into the image.
+    # Mount them for local development using docker-compose.dev.yml:
+    #   docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm simulator cka

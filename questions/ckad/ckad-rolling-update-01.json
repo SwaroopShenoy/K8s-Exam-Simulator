@@ -1,0 +1,54 @@
+{
+  "id": "ckad-rolling-update-01",
+  "weight": 6,
+  "task": "Create a Deployment and perform a rolling update:\n\n  1. Create Deployment 'web-app' in namespace 'default':\n     - Image: nginx:1.19\n     - 4 replicas\n     - Rolling update strategy: maxSurge=1, maxUnavailable=1\n     - Label: app=web, version=v1\n\n  2. Update the image to nginx:1.21:\n     kubectl set image deployment/web-app nginx=nginx:1.21\n     OR edit the deployment YAML\n\n  3. Monitor the rollout:\n     kubectl rollout status deployment/web-app\n\n  4. Check rollout history:\n     kubectl rollout history deployment/web-app\n\n  5. If needed, roll back:\n     kubectl rollout undo deployment/web-app",
+  "namespace": "default",
+  "hints": [
+    "spec.strategy.type: RollingUpdate with rollingUpdate.maxSurge and maxUnavailable",
+    "kubectl set image deploy/web-app nginx=nginx:1.21  (container name must match)",
+    "kubectl rollout status watches the progress in real time"
+  ],
+  "detailed_hints": [
+    "kubectl create deploy web-app --image=nginx:1.19 --replicas=4 --dry-run=client -o yaml",
+    "Add spec.strategy: {type: RollingUpdate, rollingUpdate: {maxSurge: 1, maxUnavailable: 1}}",
+    "kubectl set image deployment/web-app nginx=nginx:1.21 --record"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Deployment web-app has 4 replicas",
+      "command": "kubectl get deploy web-app -n {namespace} -o jsonpath='{.spec.replicas}'",
+      "expected": {
+        "type": "equals",
+        "value": "4"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Image is nginx:1.21 (after update)",
+      "command": "kubectl get deploy web-app -n {namespace} -o jsonpath='{.spec.template.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "nginx:1.21"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Rolling update strategy maxSurge is 1",
+      "command": "kubectl get deploy web-app -n {namespace} -o jsonpath='{.spec.strategy.rollingUpdate.maxSurge}'",
+      "expected": {
+        "type": "equals",
+        "value": "1"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment is fully available",
+      "command": "kubectl get deploy web-app -n {namespace} -o jsonpath='{.status.availableReplicas}'",
+      "expected": {
+        "type": "equals",
+        "value": "4"
+      }
+    }
+  ]
+}

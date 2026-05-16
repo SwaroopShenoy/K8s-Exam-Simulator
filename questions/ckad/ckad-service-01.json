@@ -1,0 +1,45 @@
+{
+  "id": "ckad-service-01",
+  "weight": 6,
+  "task": "Create a Deployment named 'backend' in namespace 'default':\n  - Image: nginx:1.21\n  - 3 replicas\n  - Labels: app=backend, tier=api\n\nExpose it as a NodePort Service named 'backend-svc' that:\n  - Targets port 80 on the pods\n  - Service port is 8080\n  - NodePort is 30080",
+  "namespace": "default",
+  "hints": [
+    "Create deployment first with proper labels",
+    "kubectl expose creates service from deployment",
+    "Edit service to set specific nodePort value"
+  ],
+  "detailed_hints": [
+    "kubectl create deploy backend --image=nginx:1.21 --replicas=3 --dry-run=client -o yaml",
+    "Add labels to spec.template.metadata.labels",
+    "kubectl expose deploy backend --name=backend-svc --port=8080 --target-port=80 --type=NodePort"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Deployment exists with 3 replicas",
+      "command": "kubectl get deploy backend -n {namespace} -o jsonpath='{.spec.replicas}'",
+      "expected": {
+        "type": "equals",
+        "value": "3"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Service is NodePort type",
+      "command": "kubectl get svc backend-svc -n {namespace} -o jsonpath='{.spec.type}'",
+      "expected": {
+        "type": "equals",
+        "value": "NodePort"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Service has endpoints (pods selected)",
+      "command": "kubectl get endpoints backend-svc -n {namespace} -o jsonpath='{.subsets[0].addresses[0]}'",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    }
+  ]
+}
