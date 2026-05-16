@@ -1,204 +1,110 @@
-# K8s Exam Simulator - CKA/CKAD Practice Tool
+# K8s Exam Simulator
 
-Simple, extensible Kubernetes exam simulator with real cluster validation.
-
-## Features
-
-✅ **Real exam format** - Questions presented one by one with timer  
-✅ **Auto-validation** - Checks your cluster resources and YAML files  
-✅ **Extensible** - Easy to add your own questions  
-✅ **Free** - Uses real questions from community repos  
-✅ **Offline** - Works completely locally  
+A terminal-based CKA/CKAD practice tool with real cluster validation — 30 questions, timed, shuffled, scored.
 
 ## Prerequisites
 
-1. **Kubernetes cluster** (one of):
-   - Kind (recommended)
-   - Minikube
-   - kubeadm cluster
-   - Any K8s cluster with kubectl access
-
-2. **Python 3.7+**
-
-3. **kubectl** configured
+- A Kubernetes cluster (Kind, Minikube, or any cluster with `kubectl` access)
+- Python 3.7+ **or** Docker
 
 ## Quick Start
 
-### Option A: Docker (no local Python/kubectl needed)
+### Docker
 
 ```bash
-# Build and run (interactive terminal)
 docker compose run --rm simulator cka
-
-# With custom options
-docker compose run --rm simulator cka --questions 3 --time 30
-docker compose run --rm simulator ckad --no-shuffle
-docker compose run --rm simulator list cka
-
-# Validate only (no exam session)
-docker compose run --rm simulator validate cka
+docker compose run --rm simulator ckad
 ```
 
-> **Linux only:** `network_mode: host` in `docker-compose.yml` lets kubectl inside the
-> container reach a Kind/minikube cluster on `127.0.0.1`. On Mac/Windows, edit
-> `docker-compose.yml` to remove `network_mode: host` and update your kubeconfig server
-> address to use `host.docker.internal` instead of `127.0.0.1`.
+Questions and workspace are baked into the image. To edit questions or keep workspace files on the host:
 
-Your `./workspace` and `./questions` directories are mounted into the container, so YAML
-files and question edits persist and take effect without rebuilding the image.
-
----
-
-### Option B: Local Python
-
-### 1. Setup Cluster (if you don't have one)
-
-#### Option A: Kind (Fastest)
 ```bash
-# Install Kind
-curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
-chmod +x ./kind
-sudo mv ./kind /usr/local/bin/kind
-
-# Create cluster
-kind create cluster --name cka-practice
-
-# Verify
-kubectl cluster-info
-kubectl get nodes
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm simulator cka
 ```
 
-#### Option B: Minikube
-```bash
-# Install
-curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-sudo install minikube-linux-amd64 /usr/local/bin/minikube
+> **Linux only:** `network_mode: host` lets kubectl inside the container reach `127.0.0.1`
+> (where Kind/Minikube listens). On Mac/Windows, remove `network_mode: host` from
+> `docker-compose.yml` and point your kubeconfig server to `host.docker.internal`.
 
-# Start
-minikube start
-
-# Verify
-kubectl get nodes
-```
-
-### 2. Install Dependencies
+### Local Python
 
 ```bash
 pip3 install pyyaml
-```
-
-### 3. Run Simulator
-
-#### CKA Exam
-```bash
+bash setup.sh      # checks kubectl, creates workspace/
 python3 simulator.py cka
 ```
 
-#### CKAD Exam
-```bash
-python3 simulator.py ckad
-```
-
-## How to Use
-
-### During Exam
-
-1. **Read the question** carefully
-2. **Work in ./workspace** directory for YAML files
-3. **Use kubectl** directly on your cluster
-4. **Commands available**:
-   - `n` or `next` - Move to next question (marks as attempted)
-   - `s` or `skip` - Skip question
-   - `h` or `hint` - Show additional hints
-   - `t` or `time` - Check remaining time
-   - `q` or `quit` - Exit exam
-
-### Example Workflow
+## Usage
 
 ```bash
-# Start exam
-python3 simulator.py cka
-
-# Question appears, you work on it:
-cd workspace
-
-# Create YAML
-kubectl create deployment web --image=nginx --dry-run=client -o yaml > web-deploy.yaml
-
-# Edit as needed
-vim web-deploy.yaml
-
-# Apply
-kubectl apply -f web-deploy.yaml
-
-# Verify
-kubectl get deploy web
-
-# Move to next question
-# Type: n
-
-# At the end, validate all
-# The simulator will check:
-# - YAML files in ./workspace
-# - Resources in your cluster
+python3 simulator.py cka                    # full exam, 120 min, shuffled
+python3 simulator.py ckad --questions 5     # quick 5-question session
+python3 simulator.py cka --time 45          # 45-minute drill
+python3 simulator.py cka --no-shuffle       # questions in filename order
+python3 simulator.py validate cka           # score workspace without exam session
+python3 simulator.py list cka               # list all available questions
 ```
 
-### Validation Only
+### During the exam
 
-If you finished the exam and want to validate later:
+Work in a separate terminal — use `kubectl`, `vim`, whatever you need. Come back and enter a command:
 
-```bash
-python3 simulator.py validate cka
-# or
-python3 simulator.py validate ckad
+| Command | Action |
+|---------|--------|
+| `n` / `next` | Mark attempted, move on |
+| `s` / `skip` | Skip (scores 0) |
+| `h` / `hint` | Show detailed hints |
+| `t` / `time` | Time remaining |
+| `q` / `quit` | Exit early, option to validate |
+
+At the end you'll be prompted to validate. Validation runs `kubectl` against your live cluster and checks YAML files in `./workspace/`.
+
+**Pass threshold: 66%** (same as the real exam).
+
+## Adding Questions
+
+Each question is a standalone JSON file in `questions/cka/` or `questions/ckad/`. Drop a new file in — no other changes needed.
+
+```
+questions/
+  cka/
+    cka-rbac-01.json       ← one question per file
+    cka-rbac-02.json       ← add more like this
+  ckad/
+    ckad-cronjob-01.json
 ```
 
-## Adding Your Own Questions
-
-Questions are stored in JSON format in `questions/<exam>/questions.json`
-
-### Question Format
+### Question format
 
 ```json
 {
-  "id": "unique-id",
+  "id": "cka-rbac-02",
   "weight": 7,
-  "task": "Question text with requirements...",
+  "task": "Full task description shown during exam...",
   "namespace": "default",
-  "hints": ["Hint 1", "Hint 2"],
-  "detailed_hints": ["More detailed hint"],
-  "validators": [
-    {
-      "type": "kubectl",
-      "description": "What this checks",
-      "command": "kubectl get pod mypod -o jsonpath='{.status.phase}'",
-      "expected": {
-        "type": "equals",
-        "value": "Running"
-      }
-    }
-  ]
+  "hints": ["Shown immediately with the question"],
+  "detailed_hints": ["Shown when user types h"],
+  "validators": [...]
 }
 ```
 
-### Validator Types
+### Validator types
 
-#### kubectl validator
-Runs kubectl command and checks output:
+**`kubectl`** — runs a command and checks stdout:
 
 ```json
 {
   "type": "kubectl",
+  "description": "Label shown in results",
   "command": "kubectl get deploy myapp -n {namespace} -o jsonpath='{.spec.replicas}'",
-  "expected": {
-    "type": "equals",  // or "contains", "not_empty", "exit_code"
-    "value": "3"
-  }
+  "expected": { "type": "equals", "value": "3" }
 }
 ```
 
-#### yaml_file validator
-Checks YAML file structure:
+`expected.type` options: `equals`, `contains`, `not_empty`, `exit_code`.
+`{namespace}` is replaced with the question's `namespace` field.
+
+**`yaml_file`** — checks a file in `./workspace/`:
 
 ```json
 {
@@ -212,123 +118,43 @@ Checks YAML file structure:
 }
 ```
 
-## Importing Questions from GitHub
+### Scoring
 
-### From killer.sh repo
+Each question awards partial credit: `(validators_passed / total) × weight`. Skipped questions score 0.
 
-```bash
-# Clone
-git clone https://github.com/killer-sh/cks-cka-ckad-simulator.git
-
-# Their questions are in simulator/cka.md and simulator/ckad.md
-# Convert them to JSON format and add to questions/cka/questions.json
-```
-
-### Community Repos
-
-- **David-VTUK CKA**: https://github.com/David-VTUK/CKA-StudyGuide
-- **Dimitris-iliadis**: https://github.com/dimitris-iliadis/cka-practice-environment
-- **dgkanatsios CKAD**: https://github.com/dgkanatsios/CKAD-exercises
-
-## Tips for Real Exam
-
-### Setup (Do this in exam first 2 minutes)
+## Exam tips
 
 ```bash
-# Aliases
+# Speed aliases (set up at the start of the real exam too)
 alias k=kubectl
 complete -o default -F __start_kubectl k
-
-# vim config
 echo "set nu et ts=2 sw=2" >> ~/.vimrc
 
-# Test
-k get nodes
-```
-
-### Time Management
-
-- 2 hours = 120 minutes
-- ~15-20 questions
-- 6-8 minutes per question average
-- Do easy ones first!
-- Leave 10-15 min for review
-
-### Speed Techniques
-
-```bash
 # Generate YAML fast
 k create deploy app --image=nginx --dry-run=client -o yaml > app.yaml
+k run pod --image=nginx --dry-run=client -o yaml > pod.yaml
 
-# Quick edits
-k edit deploy app
-
-# Set resources
-k set resources deploy app --requests=cpu=100m,memory=128Mi
-
-# Expose service
+# Common shortcuts
 k expose deploy app --port=80
+k set image deploy/app nginx=nginx:1.21
+k rollout status deploy/app
+k auth can-i create pods --as=system:serviceaccount:ns:sa
 ```
 
-## Customization
+## Community question sources
 
-### Change Time Limit
-
-Edit `simulator.py`:
-```python
-self.time_limit = 7200  # seconds (2 hours)
-```
-
-### Add More Questions
-
-1. Edit `questions/cka/questions.json` or `questions/ckad/questions.json`
-2. Add new question object
-3. Run simulator
-
-### Custom Validators
-
-Add new validator types in `run_validator()` method:
-```python
-elif validator_type == 'custom':
-    return self.validate_custom(validator, question)
-```
-
-## Troubleshooting
-
-### "Questions file not found"
-- Make sure you're in the k8s-exam-simulator directory
-- Check questions/cka/questions.json exists
-
-### "kubectl command failed"
-- Verify cluster is running: `kubectl get nodes`
-- Check context: `kubectl config current-context`
-
-### "YAML validation failed"
-- Check file is in ./workspace directory
-- Verify YAML syntax: `cat workspace/file.yaml`
-
-## Score Interpretation
-
-- **66%+** - PASS (same as real exam)
-- **75%+** - Good
-- **85%+** - Excellent
-- **95%+** - Ready for exam!
+- [dgkanatsios/CKAD-exercises](https://github.com/dgkanatsios/CKAD-exercises)
+- [David-VTUK/CKA-StudyGuide](https://github.com/David-VTUK/CKA-StudyGuide)
+- [killer-sh/cks-cka-ckad-simulator](https://github.com/killer-sh/cks-cka-ckad-simulator)
 
 ## Contributing
 
-Add questions by editing JSON files in `questions/` directory.
+Add questions as JSON files in `questions/cka/` or `questions/ckad/`. Run `bash test.sh` to validate JSON before submitting a PR.
 
 ## License
 
-MIT - Free to use and modify
-
-## Disclaimer
-
-This is a practice tool, not affiliated with CNCF or Linux Foundation.
-Questions are community-sourced for educational purposes.
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-**Good luck with your exam preparation!** 🚀
-
-Remember: Practice makes perfect. The more you use this simulator, the faster you'll get!
+*Not affiliated with CNCF or Linux Foundation. Questions are community-sourced for educational purposes.*
