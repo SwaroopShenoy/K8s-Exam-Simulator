@@ -1,0 +1,84 @@
+{
+  "id": "cka-daemonset-all-nodes-02",
+  "weight": 4,
+  "task": "Create a DaemonSet named 'ds-important' in namespace 'project-tiger' that runs on ALL nodes, including the control plane.\n\nRequirements:\n  - Namespace: project-tiger (create if needed)\n  - Image: httpd:2.4-alpine\n  - Labels on the DaemonSet AND pods:\n      id: ds-important\n      uuid: 18426a0b-5f59-4e10-923f-c0e078e82462\n  - Resource requests per container:\n      cpu: 10m\n      memory: 10Mi\n  - Must tolerate the control-plane taint so it runs on ALL nodes:\n      tolerations:\n      - key: node-role.kubernetes.io/control-plane\n        effect: NoSchedule\n        operator: Exists\n\nVerify:\n  kubectl get ds ds-important -n project-tiger\n  kubectl get pods -n project-tiger -o wide   # should show pods on every node",
+  "namespace": "project-tiger",
+  "hints": [
+    "DaemonSets run on every node by default except those with taints",
+    "The control-plane node has taint node-role.kubernetes.io/control-plane:NoSchedule",
+    "Add toleration to spec.template.spec.tolerations to allow scheduling on control-plane",
+    "No imperative command for DaemonSets — write YAML"
+  ],
+  "detailed_hints": [
+    "kubectl create ns project-tiger",
+    "apiVersion: apps/v1  kind: DaemonSet",
+    "spec.selector.matchLabels and spec.template.metadata.labels must both include id: ds-important",
+    "spec.template.spec.tolerations: [{key: node-role.kubernetes.io/control-plane, effect: NoSchedule, operator: Exists}]",
+    "spec.template.spec.containers[0].resources: {requests: {cpu: 10m, memory: 10Mi}}"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Namespace project-tiger exists",
+      "command": "kubectl get ns project-tiger -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "project-tiger"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "DaemonSet ds-important exists",
+      "command": "kubectl get ds ds-important -n project-tiger -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "ds-important"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "DaemonSet uses correct image",
+      "command": "kubectl get ds ds-important -n project-tiger -o jsonpath='{.spec.template.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "httpd:2.4-alpine"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "DaemonSet has label id=ds-important",
+      "command": "kubectl get ds ds-important -n project-tiger -o jsonpath='{.metadata.labels.id}'",
+      "expected": {
+        "type": "equals",
+        "value": "ds-important"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "DaemonSet pods have cpu request of 10m",
+      "command": "kubectl get ds ds-important -n project-tiger -o jsonpath='{.spec.template.spec.containers[0].resources.requests.cpu}'",
+      "expected": {
+        "type": "equals",
+        "value": "10m"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "DaemonSet has control-plane toleration",
+      "command": "kubectl get ds ds-important -n project-tiger -o jsonpath='{.spec.template.spec.tolerations[0].key}'",
+      "expected": {
+        "type": "contains",
+        "value": "control-plane"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Desired number of pods equals number of nodes",
+      "command": "kubectl get ds ds-important -n project-tiger -o jsonpath='{.status.desiredNumberScheduled}'",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    }
+  ]
+}

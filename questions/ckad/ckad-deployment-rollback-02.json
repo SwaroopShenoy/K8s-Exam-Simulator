@@ -1,0 +1,47 @@
+{
+  "id": "ckad-deployment-rollback-02",
+  "weight": 6,
+  "task": "Fix a broken Deployment by rolling back to a working revision.\n\nContext: A Deployment named 'api-new-c32' in namespace 'neptune' is broken because someone updated it with a non-existent image.\n\nSetup (if Deployment does not exist, create it):\n  kubectl create ns neptune 2>/dev/null || true\n  kubectl create deploy api-new-c32 --image=nginx:1.19 -n neptune --replicas=2\n  # Introduce the broken update:\n  kubectl set image deploy/api-new-c32 nginx=ngnix:1.21 -n neptune  # typo: ngnix\n\nTask:\n  1. Investigate the broken Deployment:\n     kubectl rollout status deployment/api-new-c32 -n neptune\n     kubectl rollout history deployment/api-new-c32 -n neptune\n     kubectl describe deploy api-new-c32 -n neptune\n\n  2. Identify the broken revision (the one with the typo image)\n\n  3. Roll back to the last working revision:\n     kubectl rollout undo deployment/api-new-c32 -n neptune\n     # OR rollback to specific revision:\n     kubectl rollout undo deployment/api-new-c32 --to-revision=1 -n neptune\n\n  4. Confirm all pods are Running:\n     kubectl rollout status deployment/api-new-c32 -n neptune\n     kubectl get pods -n neptune\n\nVerify:\n  kubectl get deploy api-new-c32 -n neptune -o jsonpath='{.spec.template.spec.containers[0].image}'\n  # Expected: nginx:1.19 (original working image)",
+  "namespace": "neptune",
+  "hints": [
+    "kubectl rollout history  shows all revisions with change-cause",
+    "kubectl rollout history --revision=2  shows details of specific revision",
+    "kubectl rollout undo  reverts to the PREVIOUS revision",
+    "kubectl rollout undo --to-revision=N  reverts to a specific revision"
+  ],
+  "detailed_hints": [
+    "Check current image: kubectl get deploy api-new-c32 -n neptune -o jsonpath='{.spec.template.spec.containers[0].image}'",
+    "Roll back: kubectl rollout undo deployment/api-new-c32 -n neptune",
+    "Monitor: kubectl rollout status deployment/api-new-c32 -n neptune",
+    "kubectl get pods -n neptune  -- all pods should be Running after rollback"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Deployment api-new-c32 exists in neptune",
+      "command": "kubectl get deploy api-new-c32 -n neptune -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "api-new-c32"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment has correct (non-typo) image",
+      "command": "kubectl get deploy api-new-c32 -n neptune -o jsonpath='{.spec.template.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "nginx:1.19"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "All desired pods are available",
+      "command": "kubectl get deploy api-new-c32 -n neptune -o jsonpath='{.status.availableReplicas}'",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "id": "cka-helm-01",
+  "weight": 5,
+  "task": "Manage applications using Helm.\n\nTask 1 — Add the Bitnami repository and install a release:\n  helm repo add bitnami https://charts.bitnami.com/bitnami\n  helm repo update\n  helm install my-nginx bitnami/nginx --namespace helm-demo --create-namespace --set replicaCount=2\n\nTask 2 — List all Helm releases in all namespaces:\n  helm list -A\n\nTask 3 — Generate a Helm template and save to file (exam pattern):\n  helm template my-nginx bitnami/nginx --set replicaCount=3 > /opt/course/helm-template.yaml\n\nTask 4 — Upgrade the release to change replica count:\n  helm upgrade my-nginx bitnami/nginx --namespace helm-demo --set replicaCount=3\n\nTask 5 — View upgrade history:\n  helm history my-nginx -n helm-demo\n\nTask 6 — Rollback to revision 1:\n  helm rollback my-nginx 1 -n helm-demo\n\nVerify:\n  kubectl get pods -n helm-demo\n  helm list -n helm-demo",
+  "namespace": "helm-demo",
+  "hints": [
+    "helm repo add <name> <url>  then helm repo update",
+    "helm install <release> <chart> -n <namespace> --create-namespace",
+    "helm upgrade <release> <chart> -n <namespace> --set key=value",
+    "helm template generates YAML without installing"
+  ],
+  "detailed_hints": [
+    "Check Helm version: helm version",
+    "Helm releases are Kubernetes secrets of type helm.sh/release — stored in the release namespace",
+    "helm get values my-nginx -n helm-demo  shows current values",
+    "helm show values bitnami/nginx | grep replicaCount  shows default values"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "helm-demo namespace exists",
+      "command": "kubectl get ns helm-demo -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "helm-demo"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Helm release secret exists in helm-demo",
+      "command": "kubectl get secrets -n helm-demo -l owner=helm --no-headers",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pods running in helm-demo namespace",
+      "command": "kubectl get pods -n helm-demo --no-headers | grep -c Running",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    }
+  ]
+}

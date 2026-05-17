@@ -1,0 +1,56 @@
+{
+  "id": "ckad-networkpolicy-egress-02",
+  "weight": 7,
+  "task": "Create a NetworkPolicy to restrict egress from a frontend Deployment.\n\nIn namespace 'venus':\n\n  Setup:\n    kubectl create ns venus\n    kubectl create deploy frontend --image=nginx:1.21 -n venus --replicas=2 --labels=app=frontend\n    kubectl create deploy api      --image=nginx:1.21 -n venus --replicas=1 --labels=app=api\n    kubectl create deploy db       --image=nginx:1.21 -n venus --replicas=1 --labels=app=db\n\n  Task — Create a NetworkPolicy named 'np1' in namespace 'venus':\n    - Applies to Pods from Deployment 'frontend' (label: app=frontend)\n    - Policy type: Egress\n    - Allow egress TO:\n        * Pods with label app=api (ANY port)\n        * UDP port 53 (DNS) to ANY destination\n        * TCP port 53 (DNS) to ANY destination\n    - All other egress from frontend pods is DENIED\n\nVerify:\n  kubectl describe networkpolicy np1 -n venus\n\nNote: Without the DNS egress rule, frontend pods cannot resolve service names — always include port 53 in egress-only policies.",
+  "namespace": "venus",
+  "hints": [
+    "policyTypes: [Egress]  explicitly sets this as an egress-only policy",
+    "DNS rule: spec.egress entry with ports [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}] and empty 'to' (allows to anywhere)",
+    "api rule: spec.egress entry with to [{podSelector: {matchLabels: {app: api}}}] and no port restriction (all ports)",
+    "Deployment label selector: app=frontend targets pods created by the frontend Deployment"
+  ],
+  "detailed_hints": [
+    "spec.podSelector: matchLabels: {app: frontend}",
+    "spec.egress:",
+    "  - to: [{podSelector: {matchLabels: {app: api}}}]  # allow to api pods",
+    "  - ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]  # allow DNS anywhere (no 'to' field = all destinations)"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "NetworkPolicy np1 exists in venus",
+      "command": "kubectl get networkpolicy np1 -n venus -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "np1"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "NetworkPolicy targets app=frontend pods",
+      "command": "kubectl get networkpolicy np1 -n venus -o jsonpath='{.spec.podSelector.matchLabels.app}'",
+      "expected": {
+        "type": "equals",
+        "value": "frontend"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Policy type is Egress",
+      "command": "kubectl get networkpolicy np1 -n venus -o jsonpath='{.spec.policyTypes[0]}'",
+      "expected": {
+        "type": "equals",
+        "value": "Egress"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Egress rules exist (at least 1)",
+      "command": "kubectl get networkpolicy np1 -n venus -o jsonpath='{.spec.egress}' | python3 -c \"import sys,json; d=json.load(sys.stdin); print('ok' if len(d)>0 else 'fail')\"",
+      "expected": {
+        "type": "equals",
+        "value": "ok"
+      }
+    }
+  ]
+}

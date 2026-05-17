@@ -1,0 +1,38 @@
+{
+  "id": "cka-jsonpath-output-01",
+  "weight": 1,
+  "task": "Produce custom kubectl output using JSONPath and custom-columns.\n\nTask A — Sort pods by creation timestamp:\n  Write a kubectl command that lists ALL pods in ALL namespaces, sorted by creation timestamp.\n  Save the command to /opt/course/5/find_pods.sh\n\n  Command:\n  kubectl get pods -A --sort-by=.metadata.creationTimestamp\n\nTask B — Sort pods by UID:\n  Write a command to list all pods sorted by metadata.uid.\n  Save to /opt/course/5/find_pods_uid.sh\n\n  Command:\n  kubectl get pods -A --sort-by=.metadata.uid\n\nTask C — Custom columns output:\n  Show pods with columns: NAME, NAMESPACE, IMAGE (first container image).\n  Save to /opt/course/5/pod_images.sh\n\n  Command:\n  kubectl get pods -A -o custom-columns='NAME:.metadata.name,NAMESPACE:.metadata.namespace,IMAGE:.spec.containers[0].image'\n\nTask D — JSONPath to extract specific fields:\n  Get only the names of all Running pods in the default namespace.\n\n  Command:\n  kubectl get pods -n default -o jsonpath='{range .items[?(@.status.phase==\"Running\")]}{.metadata.name}{\"\\n\"}{end}'\n\nCreate the /opt/course/5/ directory and all script files.",
+  "namespace": "default",
+  "hints": [
+    "mkdir -p /opt/course/5",
+    "--sort-by takes a JSONPath expression",
+    "custom-columns format: 'HEADER:.jsonpath'",
+    "JSONPath filter: ?(@.field==\"value\") for conditional selection"
+  ],
+  "detailed_hints": [
+    "For sort by creationTimestamp: kubectl get pods -A --sort-by=.metadata.creationTimestamp",
+    "Custom columns: -o custom-columns='NAME:.metadata.name,IMAGE:.spec.containers[0].image'",
+    "Range in JSONPath: {range .items[*]}{.metadata.name}{\"\\n\"}{end}",
+    "Combine with grep or filter: kubectl get pods -A -o jsonpath='{...}' | grep something"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "kubectl get pods with sort works",
+      "command": "kubectl get pods -A --sort-by=.metadata.creationTimestamp --no-headers",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "JSONPath extraction works for pod names",
+      "command": "kubectl get pods -n kube-system -o jsonpath='{range .items[*]}{.metadata.name}{\"\\n\"}{end}'",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    }
+  ]
+}

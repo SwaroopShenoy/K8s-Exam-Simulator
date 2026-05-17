@@ -1,0 +1,38 @@
+{
+  "id": "cka-troubleshoot-kubelet-02",
+  "weight": 8,
+  "task": "Worker node 'node01' is in a NotReady state. Investigate and fix it.\n\nContext: You are on the control plane. node01 shows as NotReady.\n\nDiagnosis steps:\n  1. Identify the problem from the control plane:\n     kubectl describe node node01\n     kubectl get events --field-selector involvedObject.name=node01\n\n  2. SSH to the affected node:\n     ssh node01\n\n  3. Check kubelet status:\n     systemctl status kubelet\n     journalctl -u kubelet --no-pager | tail -20\n\n  4. Common root causes and fixes:\n     a) kubelet is stopped:  systemctl start kubelet && systemctl enable kubelet\n     b) Wrong config path:   check /etc/kubernetes/kubelet.conf exists\n     c) Wrong binary path:   check kubelet binary location in service file\n        cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf\n        which kubelet\n     d) Certificate expired: check with openssl x509 -in /var/lib/kubelet/pki/kubelet-client-current.pem -noout -dates\n\n  5. After fix, reload daemon if service file changed:\n     systemctl daemon-reload && systemctl restart kubelet\n\n  6. Verify from control plane:\n     kubectl get nodes   # node01 should show Ready",
+  "namespace": "kube-system",
+  "hints": [
+    "journalctl -u kubelet -n 50 --no-pager  gives the most recent error messages",
+    "Common exam scenario: kubelet binary path wrong in service config",
+    "systemctl status kubelet  shows whether it's active, failed, or inactive",
+    "After fixing the service file: systemctl daemon-reload then systemctl restart kubelet"
+  ],
+  "detailed_hints": [
+    "Check service file: cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf",
+    "If kubelet binary is at /usr/bin/kubelet but service says /usr/local/bin/kubelet, fix the path",
+    "Alternatively: ln -s /usr/bin/kubelet /usr/local/bin/kubelet",
+    "Confirm fix: systemctl is-active kubelet  should return 'active'"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "node01 is Ready",
+      "command": "kubectl get node node01 -o jsonpath='{.status.conditions[?(@.type==\"Ready\")].status}'",
+      "expected": {
+        "type": "equals",
+        "value": "True"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "No NotReady nodes in cluster",
+      "command": "kubectl get nodes --no-headers | grep -c NotReady",
+      "expected": {
+        "type": "equals",
+        "value": "0"
+      }
+    }
+  ]
+}

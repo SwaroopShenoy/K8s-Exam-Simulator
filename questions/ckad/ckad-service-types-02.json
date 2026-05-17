@@ -1,0 +1,73 @@
+{
+  "id": "ckad-service-types-02",
+  "weight": 4,
+  "task": "Create and modify Services of different types.\n\nIn namespace 'pluto':\n\n  1. Create namespace 'pluto' if it does not exist.\n\n  2. Create a Pod named 'project-plt-6cc-api' in namespace 'pluto':\n     - Image: nginx:1.17.3-alpine\n     - Labels: project=plt-6cc-api\n\n  3. Create a ClusterIP Service named 'project-plt-6cc-svc' in namespace 'pluto' that:\n     - Targets pods with label project=plt-6cc-api\n     - Maps port 3333 (service port) -> 80 (container port)\n     - Type: ClusterIP\n\n  4. Test the service (from within the cluster):\n     kubectl run test-curl --image=nginx:alpine --rm -it --restart=Never -- curl project-plt-6cc-svc.pluto.svc.cluster.local:3333\n     Save the response to /opt/course/10/service_test.html\n\n  5. Convert the Service to NodePort type on nodePort 30333:\n     kubectl edit service project-plt-6cc-svc -n pluto\n     Change type from ClusterIP to NodePort and add nodePort: 30333\n\nVerify:\n  kubectl get svc project-plt-6cc-svc -n pluto\n  kubectl get svc project-plt-6cc-svc -n pluto -o jsonpath='{.spec.type}'  # NodePort\n  kubectl get svc project-plt-6cc-svc -n pluto -o jsonpath='{.spec.ports[0].nodePort}'  # 30333",
+  "namespace": "pluto",
+  "hints": [
+    "kubectl expose pod project-plt-6cc-api --name=project-plt-6cc-svc --port=3333 --target-port=80 -n pluto",
+    "To change type: kubectl edit svc project-plt-6cc-svc -n pluto  or kubectl patch",
+    "nodePort range: 30000-32767",
+    "Service DNS format: <svc-name>.<namespace>.svc.cluster.local"
+  ],
+  "detailed_hints": [
+    "kubectl run project-plt-6cc-api --image=nginx:1.17.3-alpine --labels=project=plt-6cc-api -n pluto",
+    "kubectl expose pod project-plt-6cc-api --name=project-plt-6cc-svc --port=3333 --target-port=80 -n pluto",
+    "kubectl patch svc project-plt-6cc-svc -n pluto -p '{\"spec\":{\"type\":\"NodePort\",\"ports\":[{\"port\":3333,\"targetPort\":80,\"nodePort\":30333}]}}'"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Service project-plt-6cc-svc exists in pluto",
+      "command": "kubectl get svc project-plt-6cc-svc -n pluto -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "project-plt-6cc-svc"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Service port is 3333",
+      "command": "kubectl get svc project-plt-6cc-svc -n pluto -o jsonpath='{.spec.ports[0].port}'",
+      "expected": {
+        "type": "equals",
+        "value": "3333"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Service target port is 80",
+      "command": "kubectl get svc project-plt-6cc-svc -n pluto -o jsonpath='{.spec.ports[0].targetPort}'",
+      "expected": {
+        "type": "equals",
+        "value": "80"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Service type is NodePort",
+      "command": "kubectl get svc project-plt-6cc-svc -n pluto -o jsonpath='{.spec.type}'",
+      "expected": {
+        "type": "equals",
+        "value": "NodePort"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "NodePort is 30333",
+      "command": "kubectl get svc project-plt-6cc-svc -n pluto -o jsonpath='{.spec.ports[0].nodePort}'",
+      "expected": {
+        "type": "equals",
+        "value": "30333"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Service selector targets project=plt-6cc-api",
+      "command": "kubectl get svc project-plt-6cc-svc -n pluto -o jsonpath='{.spec.selector.project}'",
+      "expected": {
+        "type": "equals",
+        "value": "plt-6cc-api"
+      }
+    }
+  ]
+}

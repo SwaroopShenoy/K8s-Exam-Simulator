@@ -1,0 +1,73 @@
+{
+  "id": "cka-networkpolicy-egress-02",
+  "weight": 9,
+  "task": "Create a NetworkPolicy named 'np-backend' in namespace 'project-snake'.\n\nSetup — create the namespace and pods first:\n  kubectl create ns project-snake\n  kubectl run backend-app --image=nginx:1.21 -n project-snake --labels=app=backend\n  kubectl run db1-app    --image=nginx:1.21 -n project-snake --labels=app=db1\n  kubectl run db2-app    --image=nginx:1.21 -n project-snake --labels=app=db2\n  kubectl run vault-app  --image=nginx:1.21 -n project-snake --labels=app=vault\n\nNetworkPolicy requirements for 'np-backend':\n  - Applies to Pods with label: app=backend\n  - Policy type: Egress\n  - Allow egress ONLY to:\n      * Pods with label app=db1  on port 1111\n      * Pods with label app=db2  on port 2222\n  - All other egress from backend pods is DENIED\n    (connections to vault-app on port 3333 must be blocked)\n\nVerify:\n  kubectl describe networkpolicy np-backend -n project-snake\n\nExpected: Two egress rules — one for db1:1111 and one for db2:2222.",
+  "namespace": "project-snake",
+  "hints": [
+    "policyTypes: [Egress]  — must explicitly set Egress",
+    "spec.podSelector targets app=backend pods",
+    "spec.egress[0]: to [{podSelector: {matchLabels: {app: db1}}}], ports [{port: 1111}]",
+    "spec.egress[1]: to [{podSelector: {matchLabels: {app: db2}}}], ports [{port: 2222}]"
+  ],
+  "detailed_hints": [
+    "A NetworkPolicy with policyTypes: [Egress] and explicit egress rules implicitly denies all other egress",
+    "If you also need DNS: add egress rule for port 53 UDP/TCP to kube-dns pods or use namespaceSelector for kube-system",
+    "YAML structure: spec.egress is a list; each item has 'to' (podSelector) and 'ports' (port number)"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "NetworkPolicy np-backend exists in project-snake",
+      "command": "kubectl get networkpolicy np-backend -n project-snake -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "np-backend"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "NetworkPolicy targets app=backend pods",
+      "command": "kubectl get networkpolicy np-backend -n project-snake -o jsonpath='{.spec.podSelector.matchLabels.app}'",
+      "expected": {
+        "type": "equals",
+        "value": "backend"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Policy type is Egress",
+      "command": "kubectl get networkpolicy np-backend -n project-snake -o jsonpath='{.spec.policyTypes[0]}'",
+      "expected": {
+        "type": "equals",
+        "value": "Egress"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Has exactly 2 egress rules",
+      "command": "kubectl get networkpolicy np-backend -n project-snake -o jsonpath='{.spec.egress}' | python3 -c \"import sys,json; print(len(json.load(sys.stdin)))\"",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "First egress port is 1111",
+      "command": "kubectl get networkpolicy np-backend -n project-snake -o jsonpath='{.spec.egress[0].ports[0].port}'",
+      "expected": {
+        "type": "equals",
+        "value": "1111"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Second egress port is 2222",
+      "command": "kubectl get networkpolicy np-backend -n project-snake -o jsonpath='{.spec.egress[1].ports[0].port}'",
+      "expected": {
+        "type": "equals",
+        "value": "2222"
+      }
+    }
+  ]
+}

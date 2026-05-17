@@ -1,0 +1,64 @@
+{
+  "id": "cka-networkpolicy-egress-01",
+  "weight": 9,
+  "task": "Create NetworkPolicies in namespace 'project-snake' to restrict egress traffic:\n\n  Setup (run these first):\n    kubectl create ns project-snake\n    kubectl run backend --image=nginx:1.21 -n project-snake --labels=app=backend\n    kubectl run db1 --image=nginx:1.21 -n project-snake --labels=app=db1\n    kubectl run db2 --image=nginx:1.21 -n project-snake --labels=app=db2\n\n  Task:\n  Create a NetworkPolicy named 'np-backend' in namespace 'project-snake' that:\n    - Applies to pods with label: app=backend\n    - Allows EGRESS to pods with label app=db1 on port 1111\n    - Allows EGRESS to pods with label app=db2 on port 2222\n    - Blocks all other egress from backend pods\n    - Does NOT restrict ingress (leave ingress open)\n\n  This means policyTypes should only contain 'Egress' (not Ingress).",
+  "namespace": "project-snake",
+  "hints": [
+    "spec.policyTypes: [Egress] — only restricts egress, ingress remains open",
+    "spec.egress is a list — one entry per destination",
+    "Each egress entry has 'to' (podSelector) and 'ports'"
+  ],
+  "detailed_hints": [
+    "spec.podSelector: {matchLabels: {app: backend}}",
+    "spec.policyTypes: [Egress]",
+    "spec.egress[0]: {to: [{podSelector: {matchLabels: {app: db1}}}], ports: [{port: 1111}]}",
+    "spec.egress[1]: {to: [{podSelector: {matchLabels: {app: db2}}}], ports: [{port: 2222}]}"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Namespace project-snake exists",
+      "command": "kubectl get ns project-snake",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "NetworkPolicy np-backend exists",
+      "command": "kubectl get networkpolicy np-backend -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Policy type is Egress only",
+      "command": "kubectl get networkpolicy np-backend -n {namespace} -o jsonpath='{.spec.policyTypes}'",
+      "expected": {
+        "type": "equals",
+        "value": "[\"Egress\"]"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Policy applies to app=backend pods",
+      "command": "kubectl get networkpolicy np-backend -n {namespace} -o jsonpath='{.spec.podSelector.matchLabels.app}'",
+      "expected": {
+        "type": "equals",
+        "value": "backend"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Egress rules exist (at least 2)",
+      "command": "kubectl get networkpolicy np-backend -n {namespace} -o jsonpath='{.spec.egress}' | python3 -c \"import sys,json; print(len(json.load(sys.stdin)))\"",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    }
+  ]
+}

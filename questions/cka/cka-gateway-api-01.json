@@ -1,0 +1,74 @@
+{
+  "id": "cka-gateway-api-01",
+  "weight": 7,
+  "task": "Migrate an existing Ingress to the Kubernetes Gateway API.\n\nContext: An Ingress named 'shop-ingress' exists in namespace 'shop'. Your task is to replace it with a Gateway + HTTPRoute.\n\nStep 1 — Inspect the existing Ingress:\n  kubectl get ingress shop-ingress -n shop -o yaml\n  # Note: routes /api -> api-svc:8080 and / -> frontend-svc:80\n\nStep 2 — Create a GatewayClass (if not present):\n  kubectl get gatewayclass\n  # Use the existing gatewayclass name from your cluster\n\nStep 3 — Create a Gateway named 'shop-gateway' in namespace 'shop':\n  apiVersion: gateway.networking.k8s.io/v1\n  kind: Gateway\n  metadata:\n    name: shop-gateway\n    namespace: shop\n  spec:\n    gatewayClassName: <existing-gatewayclass-name>\n    listeners:\n    - name: http\n      protocol: HTTP\n      port: 80\n\nStep 4 — Create an HTTPRoute named 'shop-route' in namespace 'shop':\n  apiVersion: gateway.networking.k8s.io/v1\n  kind: HTTPRoute\n  metadata:\n    name: shop-route\n    namespace: shop\n  spec:\n    parentRefs:\n    - name: shop-gateway\n    rules:\n    - matches:\n      - path:\n          type: PathPrefix\n          value: /api\n      backendRefs:\n      - name: api-svc\n        port: 8080\n    - matches:\n      - path:\n          type: PathPrefix\n          value: /\n      backendRefs:\n      - name: frontend-svc\n        port: 80\n\nStep 5 — Delete the old Ingress:\n  kubectl delete ingress shop-ingress -n shop\n\nVerify:\n  kubectl get gateway shop-gateway -n shop\n  kubectl get httproute shop-route -n shop",
+  "namespace": "shop",
+  "hints": [
+    "Gateway API is GA in Kubernetes v1.31+ — apiVersion: gateway.networking.k8s.io/v1",
+    "GatewayClass must exist first — use kubectl get gatewayclass to find available classes",
+    "HTTPRoute parentRefs points to the Gateway by name",
+    "PathPrefix /api must be listed BEFORE / (more specific paths first)"
+  ],
+  "detailed_hints": [
+    "Install Gateway API CRDs if missing: kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml",
+    "GatewayClass name depends on your CNI/ingress controller (nginx, cilium, etc.)",
+    "kubectl describe gateway shop-gateway -n shop  shows conditions and assigned address",
+    "HTTPRoute spec.rules[].matches[].path.type options: Exact, PathPrefix, RegularExpression"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Namespace shop exists",
+      "command": "kubectl get ns shop -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "shop"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Gateway shop-gateway exists",
+      "command": "kubectl get gateway shop-gateway -n shop -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "shop-gateway"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Gateway listens on port 80",
+      "command": "kubectl get gateway shop-gateway -n shop -o jsonpath='{.spec.listeners[0].port}'",
+      "expected": {
+        "type": "equals",
+        "value": "80"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "HTTPRoute shop-route exists",
+      "command": "kubectl get httproute shop-route -n shop -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "shop-route"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "HTTPRoute references shop-gateway",
+      "command": "kubectl get httproute shop-route -n shop -o jsonpath='{.spec.parentRefs[0].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "shop-gateway"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Old ingress is deleted",
+      "command": "kubectl get ingress shop-ingress -n shop 2>&1",
+      "expected": {
+        "type": "contains",
+        "value": "not found"
+      }
+    }
+  ]
+}

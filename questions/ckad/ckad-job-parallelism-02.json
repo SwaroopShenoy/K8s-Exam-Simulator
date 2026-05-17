@@ -1,0 +1,74 @@
+{
+  "id": "ckad-job-parallelism-02",
+  "weight": 5,
+  "task": "Create a Job named 'neb-new-job' in namespace 'neptune' with specific completion requirements.\n\nCreate namespace 'neptune' if it does not exist.\n\nJob requirements:\n  - Name: neb-new-job\n  - Namespace: neptune\n  - Image: busybox:1.31.0\n  - Container name: neb-new-job-container\n  - Command: ['/bin/sh', '-c', 'sleep 2 && echo done']\n  - completions: 3      (run job pod 3 times total)\n  - parallelism: 2      (run 2 job pods at a time)\n  - Labels on Job AND pod template:\n      id: awesome-job\n  - Save the YAML manifest to /opt/course/3/job.yaml\n\nVerify:\n  kubectl get job neb-new-job -n neptune\n  kubectl get job neb-new-job -n neptune -o jsonpath='{.spec.completions}'\n  # Expected: 3\n  kubectl get job neb-new-job -n neptune -o jsonpath='{.spec.parallelism}'\n  # Expected: 2",
+  "namespace": "neptune",
+  "hints": [
+    "kubectl create job neb-new-job --image=busybox:1.31.0 -n neptune --dry-run=client -o yaml",
+    "Add completions: 3 and parallelism: 2 under spec:",
+    "Container name goes in spec.template.spec.containers[0].name",
+    "mkdir -p /opt/course/3  before saving"
+  ],
+  "detailed_hints": [
+    "kubectl create job neb-new-job --image=busybox:1.31.0 -n neptune -- /bin/sh -c 'sleep 2 && echo done' --dry-run=client -o yaml > /opt/course/3/job.yaml",
+    "Add under spec: completions: 3, parallelism: 2",
+    "Add labels under spec.template.metadata.labels: id: awesome-job",
+    "Also add labels on Job metadata: labels: {id: awesome-job}"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Job neb-new-job exists in neptune",
+      "command": "kubectl get job neb-new-job -n neptune -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "neb-new-job"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "completions is 3",
+      "command": "kubectl get job neb-new-job -n neptune -o jsonpath='{.spec.completions}'",
+      "expected": {
+        "type": "equals",
+        "value": "3"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "parallelism is 2",
+      "command": "kubectl get job neb-new-job -n neptune -o jsonpath='{.spec.parallelism}'",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Job uses busybox:1.31.0",
+      "command": "kubectl get job neb-new-job -n neptune -o jsonpath='{.spec.template.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "busybox:1.31.0"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Container name is neb-new-job-container",
+      "command": "kubectl get job neb-new-job -n neptune -o jsonpath='{.spec.template.spec.containers[0].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "neb-new-job-container"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Job has label id=awesome-job",
+      "command": "kubectl get job neb-new-job -n neptune -o jsonpath='{.metadata.labels.id}'",
+      "expected": {
+        "type": "equals",
+        "value": "awesome-job"
+      }
+    }
+  ]
+}

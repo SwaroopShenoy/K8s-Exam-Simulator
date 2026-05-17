@@ -1,0 +1,48 @@
+{
+  "id": "cka-kubeadm-upgrade-02",
+  "weight": 10,
+  "task": "Upgrade worker node 'node01' to match the control plane Kubernetes version.\n\nContext: The control plane is already on v1.31.0. node01 is on an older version.\nYou have SSH access to node01.\n\nOn the CONTROL PLANE — drain node01:\n  kubectl drain node01 --ignore-daemonsets --delete-emptydir-data\n\nOn NODE01 (SSH in: ssh node01) — upgrade kubeadm, kubelet, kubectl:\n  # Unhold packages\n  apt-mark unhold kubeadm kubelet kubectl\n\n  # Install matching versions\n  apt-get update\n  apt-get install -y kubeadm=1.31.0-1.1 kubelet=1.31.0-1.1 kubectl=1.31.0-1.1\n\n  # Re-hold\n  apt-mark hold kubeadm kubelet kubectl\n\n  # Apply node upgrade\n  kubeadm upgrade node\n\n  # Restart kubelet\n  systemctl daemon-reload\n  systemctl restart kubelet\n\nOn the CONTROL PLANE — uncordon node01:\n  kubectl uncordon node01\n\nVerify:\n  kubectl get nodes\n  # All nodes should show v1.31.0 and STATUS=Ready",
+  "namespace": "kube-system",
+  "hints": [
+    "Always drain the worker node from the control plane before upgrading it",
+    "Use apt-cache madison kubeadm to find exact available versions",
+    "Run kubeadm upgrade node (not apply) on worker nodes",
+    "Uncordon after upgrade to allow scheduling again"
+  ],
+  "detailed_hints": [
+    "From control plane: kubectl drain node01 --ignore-daemonsets --delete-emptydir-data",
+    "On node01: apt-mark unhold kubeadm kubelet kubectl && apt-get install -y kubeadm=1.31.0-1.1 kubelet=1.31.0-1.1 kubectl=1.31.0-1.1 && apt-mark hold kubeadm kubelet kubectl",
+    "On node01: kubeadm upgrade node && systemctl daemon-reload && systemctl restart kubelet",
+    "From control plane: kubectl uncordon node01",
+    "Check: kubectl get nodes -o wide  (VERSION column should show v1.31.0)"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "node01 is Ready",
+      "command": "kubectl get node node01 -o jsonpath='{.status.conditions[?(@.type==\"Ready\")].status}'",
+      "expected": {
+        "type": "equals",
+        "value": "True"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "node01 kubelet version matches control plane",
+      "command": "kubectl get node node01 -o jsonpath='{.status.nodeInfo.kubeletVersion}'",
+      "expected": {
+        "type": "contains",
+        "value": "v1.31"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "node01 is schedulable (not cordoned)",
+      "command": "kubectl get node node01 -o jsonpath='{.spec.unschedulable}'",
+      "expected": {
+        "type": "equals",
+        "value": ""
+      }
+    }
+  ]
+}

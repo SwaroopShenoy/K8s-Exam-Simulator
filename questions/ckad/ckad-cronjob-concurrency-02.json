@@ -1,0 +1,73 @@
+{
+  "id": "ckad-cronjob-concurrency-02",
+  "weight": 5,
+  "task": "Create a CronJob named 'data-cleanup' in namespace 'jupiter' with the following requirements:\n\n  - Schedule: every 2 minutes (*/2 * * * *)\n  - Image: busybox:1.35\n  - Command: ['/bin/sh', '-c', 'echo cleanup started at $(date); sleep 10; echo done']\n  - concurrencyPolicy: Forbid\n    (If the previous job is still running when the next one is scheduled, skip the new one)\n  - successfulJobsHistoryLimit: 2\n  - failedJobsHistoryLimit: 1\n  - restartPolicy: OnFailure\n\nCreate the namespace 'jupiter' if it does not exist.\n\nVerify:\n  kubectl get cronjob data-cleanup -n jupiter\n  kubectl get cronjob data-cleanup -n jupiter -o jsonpath='{.spec.concurrencyPolicy}'\n  # Expected: Forbid",
+  "namespace": "jupiter",
+  "hints": [
+    "kubectl create ns jupiter",
+    "kubectl create cronjob data-cleanup --image=busybox:1.35 --schedule='*/2 * * * *' -n jupiter --dry-run=client -o yaml",
+    "Add concurrencyPolicy, successfulJobsHistoryLimit, failedJobsHistoryLimit under spec:",
+    "concurrencyPolicy options: Allow (default), Forbid, Replace"
+  ],
+  "detailed_hints": [
+    "kubectl create cronjob data-cleanup --image=busybox:1.35 --schedule='*/2 * * * *' -n jupiter -- /bin/sh -c 'echo cleanup started at $(date); sleep 10; echo done'",
+    "Edit the generated YAML to add under spec: concurrencyPolicy: Forbid, successfulJobsHistoryLimit: 2, failedJobsHistoryLimit: 1",
+    "restartPolicy goes under spec.jobTemplate.spec.template.spec.restartPolicy"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Namespace jupiter exists",
+      "command": "kubectl get ns jupiter -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "jupiter"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "CronJob data-cleanup exists",
+      "command": "kubectl get cronjob data-cleanup -n jupiter -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "data-cleanup"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Schedule is every 2 minutes",
+      "command": "kubectl get cronjob data-cleanup -n jupiter -o jsonpath='{.spec.schedule}'",
+      "expected": {
+        "type": "equals",
+        "value": "*/2 * * * *"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "concurrencyPolicy is Forbid",
+      "command": "kubectl get cronjob data-cleanup -n jupiter -o jsonpath='{.spec.concurrencyPolicy}'",
+      "expected": {
+        "type": "equals",
+        "value": "Forbid"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "successfulJobsHistoryLimit is 2",
+      "command": "kubectl get cronjob data-cleanup -n jupiter -o jsonpath='{.spec.successfulJobsHistoryLimit}'",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "failedJobsHistoryLimit is 1",
+      "command": "kubectl get cronjob data-cleanup -n jupiter -o jsonpath='{.spec.failedJobsHistoryLimit}'",
+      "expected": {
+        "type": "equals",
+        "value": "1"
+      }
+    }
+  ]
+}

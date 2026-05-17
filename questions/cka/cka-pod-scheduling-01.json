@@ -1,0 +1,56 @@
+{
+  "id": "cka-pod-scheduling-01",
+  "weight": 3,
+  "task": "Schedule a Pod only on control plane nodes using nodeSelector and tolerations.\n\nCreate a Pod named 'pod1' in namespace 'default' with:\n  - Image: httpd:2.4-alpine\n  - nodeSelector: node-role.kubernetes.io/control-plane: \"\"\n    (this targets nodes with the control-plane role label)\n  - Toleration to allow scheduling on the control plane:\n      key: node-role.kubernetes.io/control-plane\n      effect: NoSchedule\n      operator: Exists\n\nDo NOT add new labels to any nodes — use existing labels only.\n\nVerify the pod lands on the control plane node:\n  kubectl get pod pod1 -o wide\n  # NODE column should show the control-plane node name",
+  "namespace": "default",
+  "hints": [
+    "kubectl get nodes --show-labels  to see existing labels on control-plane node",
+    "nodeSelector uses existing node labels — do not modify nodes",
+    "Toleration key must match the taint key on the control-plane node",
+    "Check taints: kubectl describe node <cp-node> | grep Taint"
+  ],
+  "detailed_hints": [
+    "Control plane nodes typically have label: node-role.kubernetes.io/control-plane (value empty string)",
+    "Taint on control plane: node-role.kubernetes.io/control-plane:NoSchedule",
+    "YAML: spec.nodeSelector: {'node-role.kubernetes.io/control-plane': ''}",
+    "YAML: spec.tolerations: [{key: 'node-role.kubernetes.io/control-plane', effect: NoSchedule, operator: Exists}]"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Pod pod1 is Running",
+      "command": "kubectl get pod pod1 -n default -o jsonpath='{.status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Running"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod uses httpd:2.4-alpine image",
+      "command": "kubectl get pod pod1 -n default -o jsonpath='{.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "httpd:2.4-alpine"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod has nodeSelector targeting control-plane",
+      "command": "kubectl get pod pod1 -n default -o jsonpath='{.spec.nodeSelector}'",
+      "expected": {
+        "type": "contains",
+        "value": "control-plane"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod has a toleration for control-plane taint",
+      "command": "kubectl get pod pod1 -n default -o jsonpath='{.spec.tolerations[*].key}'",
+      "expected": {
+        "type": "contains",
+        "value": "control-plane"
+      }
+    }
+  ]
+}

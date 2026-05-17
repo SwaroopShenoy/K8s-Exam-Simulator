@@ -1,0 +1,63 @@
+{
+  "id": "cka-multicontainer-01",
+  "weight": 4,
+  "task": "Create a Pod named 'multi-container-playground' in namespace 'default' with THREE containers:\n\n  Container 1 — name: c1\n    Image: nginx:1.21\n    Env var: SVC=nginx-svc\n\n  Container 2 — name: c2\n    Image: busybox:1.35\n    Command: ['sh', '-c', 'while true; do date >> /var/log/date.log; sleep 1; done']\n    Mounts emptyDir volume 'logs' at /var/log\n\n  Container 3 — name: c3\n    Image: busybox:1.35\n    Command: ['sh', '-c', 'tail -f /var/log/date.log']\n    Mounts the same emptyDir volume 'logs' at /var/log\n\nAfter creation, verify c2 is writing and c3 can read:\n  kubectl exec multi-container-playground -c c3 -- tail /var/log/date.log",
+  "namespace": "default",
+  "hints": [
+    "All 3 containers go under spec.containers[] in the same Pod",
+    "emptyDir volume is shared between c2 and c3",
+    "env var: spec.containers[0].env: [{name: SVC, value: nginx-svc}]"
+  ],
+  "detailed_hints": [
+    "kubectl run multi-container-playground --image=nginx:1.21 --dry-run=client -o yaml > pod.yaml",
+    "Add c2 and c3 to the containers array, add the emptyDir volume",
+    "Volume def: spec.volumes: [{name: logs, emptyDir: {}}]"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Pod has 3 containers",
+      "command": "kubectl get pod multi-container-playground -n {namespace} -o jsonpath='{.spec.containers}' | python3 -c \"import sys,json; print(len(json.load(sys.stdin)))\"",
+      "expected": {
+        "type": "equals",
+        "value": "3"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "c1 container uses nginx:1.21",
+      "command": "kubectl get pod multi-container-playground -n {namespace} -o jsonpath='{.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "nginx:1.21"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "c1 has SVC env var",
+      "command": "kubectl get pod multi-container-playground -n {namespace} -o jsonpath='{.spec.containers[0].env[0].value}'",
+      "expected": {
+        "type": "equals",
+        "value": "nginx-svc"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "emptyDir volume named logs is defined",
+      "command": "kubectl get pod multi-container-playground -n {namespace} -o jsonpath='{.spec.volumes[0].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "logs"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod is Running",
+      "command": "kubectl get pod multi-container-playground -n {namespace} -o jsonpath='{.status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Running"
+      }
+    }
+  ]
+}

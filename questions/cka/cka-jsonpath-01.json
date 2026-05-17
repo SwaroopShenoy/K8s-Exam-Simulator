@@ -1,0 +1,36 @@
+{
+  "id": "cka-jsonpath-01",
+  "weight": 2,
+  "task": "Practice kubectl output formatting — these appear as short questions on the real exam.\n\nComplete each of the following:\n\n  1. Get the names and namespaces of all pods, sorted by namespace:\n     kubectl get pods --all-namespaces --sort-by=.metadata.namespace\n\n  2. List all pods with custom columns showing NAME, NAMESPACE, NODE, and STATUS:\n     kubectl get pods -A -o custom-columns='NAME:.metadata.name,NAMESPACE:.metadata.namespace,NODE:.spec.nodeName,STATUS:.status.phase'\n\n  3. Get only the image of the first container of all pods in kube-system:\n     kubectl get pods -n kube-system -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.containers[0].image}{\"\\n\"}{end}'\n\n  4. Sort nodes by their creation timestamp:\n     kubectl get nodes --sort-by=.metadata.creationTimestamp\n\n  5. Write the output of (4) to a file:\n     kubectl get nodes --sort-by=.metadata.creationTimestamp > /var/tmp/nodes-sorted.txt\n\nSave the file from step 5 — it will be validated.",
+  "namespace": "default",
+  "hints": [
+    "--sort-by accepts any jsonpath expression",
+    "-o custom-columns='HEADER:.jsonpath' for custom output",
+    "-o jsonpath='{range .items[*]}...{end}' for looping"
+  ],
+  "detailed_hints": [
+    "JSONPath range: {range .items[*]}{.metadata.name}{\"\\t\"}{.spec.nodeName}{\"\\n\"}{end}",
+    "custom-columns format: 'COL1:.path1,COL2:.path2'",
+    "Sort by creation: --sort-by=.metadata.creationTimestamp"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Nodes can be listed (kubectl works)",
+      "command": "kubectl get nodes --sort-by=.metadata.creationTimestamp --no-headers",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "kube-system pods can be listed with jsonpath",
+      "command": "kubectl get pods -n kube-system -o jsonpath='{range .items[*]}{.metadata.name}{\"\\n\"}{end}'",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    }
+  ]
+}

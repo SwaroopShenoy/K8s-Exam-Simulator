@@ -1,0 +1,64 @@
+{
+  "id": "cka-multicontainer-shared-volume-01",
+  "weight": 4,
+  "task": "Create a Pod named 'multi-container-playground' in namespace 'default' with THREE containers sharing a volume:\n\n  Container 1 (c1):\n    - Image: nginx:1.21\n    - Environment variable MY_NODE_NAME that references spec.nodeName\n      (fieldRef: fieldPath: spec.nodeName)\n\n  Container 2 (c2):\n    - Image: busybox:1.35\n    - Command: ['/bin/sh', '-c', 'while true; do date >> /tmp/shared/log.txt; sleep 5; done']\n    - Mounts emptyDir volume 'shared-data' at /tmp/shared\n\n  Container 3 (c3):\n    - Image: busybox:1.35\n    - Command: ['/bin/sh', '-c', 'tail -f /tmp/shared/log.txt']\n    - Mounts the same 'shared-data' volume at /tmp/shared\n\n  Volume:\n    - Name: shared-data\n    - Type: emptyDir\n\nVerify after creation:\n  kubectl logs multi-container-playground -c c3   # should show date output\n  kubectl exec multi-container-playground -c c1 -- env | grep MY_NODE_NAME",
+  "namespace": "default",
+  "hints": [
+    "No imperative shortcut — write YAML with multiple containers",
+    "fieldRef env var: env[0].valueFrom.fieldRef.fieldPath: spec.nodeName",
+    "All containers that need shared-data must declare it in volumeMounts",
+    "spec.volumes must have emptyDir: {} entry"
+  ],
+  "detailed_hints": [
+    "Pod spec has containers[] array with 3 entries and volumes[] array with 1 entry",
+    "For env using downward API: env: [{name: MY_NODE_NAME, valueFrom: {fieldRef: {fieldPath: spec.nodeName}}}]",
+    "Both c2 and c3 mount the same volume name at the same path — they share writes"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Pod is Running",
+      "command": "kubectl get pod multi-container-playground -n default -o jsonpath='{.status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Running"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod has 3 containers",
+      "command": "kubectl get pod multi-container-playground -n default -o jsonpath='{.spec.containers}' | python3 -c \"import sys,json; print(len(json.load(sys.stdin)))\"",
+      "expected": {
+        "type": "equals",
+        "value": "3"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Container c1 uses nginx:1.21",
+      "command": "kubectl get pod multi-container-playground -n default -o jsonpath='{.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "nginx:1.21"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "c1 has MY_NODE_NAME env var from fieldRef",
+      "command": "kubectl get pod multi-container-playground -n default -o jsonpath='{.spec.containers[0].env[0].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "MY_NODE_NAME"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "emptyDir volume shared-data exists",
+      "command": "kubectl get pod multi-container-playground -n default -o jsonpath='{.spec.volumes[0].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "shared-data"
+      }
+    }
+  ]
+}

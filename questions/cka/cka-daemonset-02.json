@@ -1,0 +1,73 @@
+{
+  "id": "cka-daemonset-02",
+  "weight": 4,
+  "task": "Create a DaemonSet named 'ds-important' in namespace 'project-tiger':\n\n  1. Create namespace 'project-tiger' if it doesn't exist\n\n  2. Create DaemonSet 'ds-important' with:\n     - Image: httpd:2.4-alpine\n     - Labels on pod template: id=ds-important, uuid=18426a0b-5f59-4e10-923f-c0e078e82462\n     - Resource requests: cpu=10m, memory=10Mi\n     - Must run on ALL nodes including control plane\n       (add toleration for node-role.kubernetes.io/control-plane:NoSchedule)\n\n  Verify it runs on every node:\n    kubectl get ds -n project-tiger\n    kubectl get pods -n project-tiger -o wide",
+  "namespace": "project-tiger",
+  "hints": [
+    "kubectl create ns project-tiger",
+    "No 'kubectl create daemonset' shortcut — write YAML",
+    "DaemonSet has no spec.replicas field"
+  ],
+  "detailed_hints": [
+    "Start from a Deployment YAML: change kind to DaemonSet, remove replicas",
+    "spec.selector.matchLabels must match spec.template.metadata.labels",
+    "Toleration: {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}",
+    "Resources go under spec.template.spec.containers[0].resources.requests"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Namespace project-tiger exists",
+      "command": "kubectl get ns project-tiger",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "DaemonSet ds-important exists",
+      "command": "kubectl get ds ds-important -n {namespace}",
+      "expected": {
+        "type": "exit_code",
+        "value": 0
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "DaemonSet uses httpd:2.4-alpine",
+      "command": "kubectl get ds ds-important -n {namespace} -o jsonpath='{.spec.template.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "httpd:2.4-alpine"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Pod label id=ds-important is set",
+      "command": "kubectl get ds ds-important -n {namespace} -o jsonpath='{.spec.template.metadata.labels.id}'",
+      "expected": {
+        "type": "equals",
+        "value": "ds-important"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Has control-plane toleration",
+      "command": "kubectl get ds ds-important -n {namespace} -o jsonpath='{.spec.template.spec.tolerations[*].key}'",
+      "expected": {
+        "type": "contains",
+        "value": "node-role.kubernetes.io/control-plane"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "CPU request is 10m",
+      "command": "kubectl get ds ds-important -n {namespace} -o jsonpath='{.spec.template.spec.containers[0].resources.requests.cpu}'",
+      "expected": {
+        "type": "equals",
+        "value": "10m"
+      }
+    }
+  ]
+}

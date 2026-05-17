@@ -1,0 +1,36 @@
+{
+  "id": "cka-troubleshoot-kubelet-01",
+  "weight": 8,
+  "task": "A worker node is in NotReady state. SSH into it and fix the issue so it returns to Ready.\n\n  1. Identify the NotReady node:\n     kubectl get nodes\n\n  2. SSH into the node:\n     ssh <node-name>\n\n  3. Diagnose — check kubelet status:\n     sudo systemctl status kubelet\n     sudo journalctl -u kubelet -n 50 --no-pager\n\n  4. Common causes and fixes:\n\n     a) kubelet is stopped:\n        sudo systemctl start kubelet\n        sudo systemctl enable kubelet\n\n     b) Wrong kubelet binary path (ExecStart points to wrong path):\n        sudo find / -name kubelet -type f 2>/dev/null\n        sudo vi /etc/systemd/system/kubelet.service.d/10-kubeadm.conf\n        sudo systemctl daemon-reload && sudo systemctl restart kubelet\n\n     c) Wrong kubeconfig path:\n        Check --kubeconfig flag in kubelet args\n        ls /etc/kubernetes/kubelet.conf\n\n     d) Disk or resource pressure: check df -h, free -m\n\n  5. Verify from control plane:\n     kubectl get nodes  (node should become Ready within ~60 seconds)",
+  "namespace": "default",
+  "hints": [
+    "systemctl status kubelet is always the first step on any node issue",
+    "journalctl -u kubelet -n 50 shows the actual error",
+    "After fixing, systemctl daemon-reload && systemctl restart kubelet"
+  ],
+  "detailed_hints": [
+    "If ExecStart binary path is wrong: sudo vi /usr/lib/systemd/system/kubelet.service or /etc/systemd/system/kubelet.service.d/10-kubeadm.conf",
+    "Find kubelet binary: which kubelet or find /usr -name kubelet",
+    "After every change to service files: systemctl daemon-reload first, then restart"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "All nodes are Ready",
+      "command": "kubectl get nodes --no-headers | grep -c Ready",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "No node is in NotReady state",
+      "command": "kubectl get nodes --no-headers | grep NotReady",
+      "expected": {
+        "type": "exit_code",
+        "value": 1
+      }
+    }
+  ]
+}

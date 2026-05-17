@@ -1,0 +1,74 @@
+{
+  "id": "ckad-pv-pvc-pod-02",
+  "weight": 6,
+  "task": "Create persistent storage resources and use them in a Deployment.\n\nIn namespace 'earth':\n\n  1. Create a PersistentVolume named 'earth-project-earthflower-pv' with:\n     - Capacity: 2Gi\n     - Access mode: ReadWriteOnce\n     - storageClassName: earth-pv\n     - hostPath: /Volumes/Data\n     - Reclaim policy: Retain\n\n  2. Create a PersistentVolumeClaim named 'earth-project-earthflower-pvc' in namespace 'earth' with:\n     - Storage request: 2Gi\n     - Access mode: ReadWriteOnce\n     - storageClassName: earth-pv\n\n  3. Create a Deployment named 'project-earthflower' in namespace 'earth' with:\n     - Image: httpd:2.4.41-alpine\n     - 1 replica\n     - Mount the PVC at /tmp/project-data\n\n  Create the namespace 'earth' if it does not exist.\n\nVerify:\n  kubectl get pv earth-project-earthflower-pv\n  kubectl get pvc earth-project-earthflower-pvc -n earth\n  # PVC STATUS should show: Bound\n  kubectl get deploy project-earthflower -n earth",
+  "namespace": "earth",
+  "hints": [
+    "PV and PVC storageClassName must match exactly: earth-pv",
+    "PVC capacity must be <= PV capacity for binding",
+    "Deployment volume: {name: data, persistentVolumeClaim: {claimName: earth-project-earthflower-pvc}}",
+    "VolumeMount: {name: data, mountPath: /tmp/project-data}"
+  ],
+  "detailed_hints": [
+    "kubectl create ns earth",
+    "PV spec: capacity.storage: 2Gi, accessModes: [ReadWriteOnce], storageClassName: earth-pv, hostPath.path: /Volumes/Data, persistentVolumeReclaimPolicy: Retain",
+    "PVC spec: resources.requests.storage: 2Gi, accessModes: [ReadWriteOnce], storageClassName: earth-pv",
+    "Check PVC binding: kubectl get pvc -n earth  (STATUS should be Bound, not Pending)"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "PV earth-project-earthflower-pv exists",
+      "command": "kubectl get pv earth-project-earthflower-pv -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "earth-project-earthflower-pv"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "PV capacity is 2Gi",
+      "command": "kubectl get pv earth-project-earthflower-pv -o jsonpath='{.spec.capacity.storage}'",
+      "expected": {
+        "type": "equals",
+        "value": "2Gi"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "PVC is Bound",
+      "command": "kubectl get pvc earth-project-earthflower-pvc -n earth -o jsonpath='{.status.phase}'",
+      "expected": {
+        "type": "equals",
+        "value": "Bound"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment project-earthflower exists in earth",
+      "command": "kubectl get deploy project-earthflower -n earth -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "project-earthflower"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment uses httpd:2.4.41-alpine",
+      "command": "kubectl get deploy project-earthflower -n earth -o jsonpath='{.spec.template.spec.containers[0].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "httpd:2.4.41-alpine"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment mounts PVC at /tmp/project-data",
+      "command": "kubectl get deploy project-earthflower -n earth -o jsonpath='{.spec.template.spec.containers[0].volumeMounts[0].mountPath}'",
+      "expected": {
+        "type": "equals",
+        "value": "/tmp/project-data"
+      }
+    }
+  ]
+}

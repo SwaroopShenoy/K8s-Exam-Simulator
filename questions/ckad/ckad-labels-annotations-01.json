@@ -1,0 +1,64 @@
+{
+  "id": "ckad-labels-annotations-01",
+  "weight": 2,
+  "task": "Manage labels and annotations across Pods in namespace 'sun'.\n\nSetup — create test pods:\n  kubectl create ns sun\n  kubectl run sun-worker1 --image=busybox:1.35 -n sun --labels=type=worker -- sleep 3600\n  kubectl run sun-runner1 --image=busybox:1.35 -n sun --labels=type=runner -- sleep 3600\n  kubectl run sun-idle1   --image=busybox:1.35 -n sun --labels=type=idle   -- sleep 3600\n\nTasks:\n\n  1. Add label 'protected=true' to ALL pods in namespace 'sun' that have label type=worker OR type=runner:\n     kubectl label pod -n sun -l type=worker protected=true\n     kubectl label pod -n sun -l type=runner protected=true\n\n  2. Add annotation 'protected=do not delete this pod' to all pods that now have label protected=true:\n     kubectl annotate pod -n sun -l protected=true 'protected=do not delete this pod'\n\n  3. Verify:\n     kubectl get pods -n sun --show-labels\n     kubectl describe pod sun-worker1 -n sun | grep protected",
+  "namespace": "sun",
+  "hints": [
+    "kubectl label selects pods using -l flag: kubectl label pod -l type=worker protected=true -n sun",
+    "kubectl annotate works similarly: kubectl annotate pod -l protected=true 'key=value' -n sun",
+    "kubectl get pods --show-labels  verifies labels",
+    "kubectl describe pod | grep Annotations  shows annotations"
+  ],
+  "detailed_hints": [
+    "Label multiple selectors in two commands (OR not supported in single -l expression natively)",
+    "Annotation with spaces: 'protected=do not delete this pod'  (single quotes around value)",
+    "Verify with: kubectl get pods -n sun -o jsonpath='{range .items[*]}{.metadata.name}: {.metadata.labels}{\"\\n\"}{end}'"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "worker pod has protected=true label",
+      "command": "kubectl get pod sun-worker1 -n sun -o jsonpath='{.metadata.labels.protected}'",
+      "expected": {
+        "type": "equals",
+        "value": "true"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "runner pod has protected=true label",
+      "command": "kubectl get pod sun-runner1 -n sun -o jsonpath='{.metadata.labels.protected}'",
+      "expected": {
+        "type": "equals",
+        "value": "true"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "idle pod does NOT have protected label",
+      "command": "kubectl get pod sun-idle1 -n sun -o jsonpath='{.metadata.labels.protected}'",
+      "expected": {
+        "type": "equals",
+        "value": ""
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "worker pod has protected annotation",
+      "command": "kubectl get pod sun-worker1 -n sun -o jsonpath='{.metadata.annotations.protected}'",
+      "expected": {
+        "type": "equals",
+        "value": "do not delete this pod"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "runner pod has protected annotation",
+      "command": "kubectl get pod sun-runner1 -n sun -o jsonpath='{.metadata.annotations.protected}'",
+      "expected": {
+        "type": "equals",
+        "value": "do not delete this pod"
+      }
+    }
+  ]
+}

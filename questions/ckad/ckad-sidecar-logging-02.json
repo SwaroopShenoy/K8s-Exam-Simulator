@@ -1,0 +1,69 @@
+{
+  "id": "ckad-sidecar-logging-02",
+  "weight": 4,
+  "task": "Add a logging sidecar container to an existing Deployment.\n\nContext: A Deployment named 'cleaner' exists in namespace 'mercury'. It has a main container that writes logs to /var/log/cleaner.log via a shared volume named 'logs'.\n\nSetup (if Deployment does not exist, create it):\n  kubectl create ns mercury\n  kubectl create deploy cleaner --image=busybox:1.35 -n mercury -- /bin/sh -c 'i=0; while true; do echo \"$(date): cleaning item $i\" >> /var/log/cleaner.log; i=$((i+1)); sleep 2; done'\n  # Then add volume 'logs' (emptyDir) to the deployment and mount at /var/log\n\nTask: Add a sidecar container to the 'cleaner' Deployment:\n  - Container name: logger-con\n  - Image: busybox:1.35\n  - Command: ['/bin/sh', '-c', 'tail -n+1 -f /var/log/cleaner.log']\n  - Mount the existing volume 'logs' at /var/log\n\nSave the updated Deployment YAML to /opt/course/16/cleaner-new.yaml\n\nVerify:\n  kubectl get deploy cleaner -n mercury -o jsonpath='{.spec.template.spec.containers}' | python3 -m json.tool | grep name\n  kubectl logs -n mercury -l app=cleaner -c logger-con",
+  "namespace": "mercury",
+  "hints": [
+    "kubectl get deploy cleaner -n mercury -o yaml > /opt/course/16/cleaner-new.yaml",
+    "Add logger-con container to spec.template.spec.containers[] array",
+    "Reuse the existing volume 'logs' — add volumeMounts to the new container",
+    "kubectl apply -f /opt/course/16/cleaner-new.yaml  to apply changes"
+  ],
+  "detailed_hints": [
+    "Edit YAML to add under spec.template.spec.containers:",
+    "- name: logger-con",
+    "  image: busybox:1.35",
+    "  command: ['/bin/sh', '-c', 'tail -n+1 -f /var/log/cleaner.log']",
+    "  volumeMounts:",
+    "  - name: logs",
+    "    mountPath: /var/log",
+    "The volume 'logs' must be declared in spec.template.spec.volumes too"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "Deployment cleaner exists in mercury",
+      "command": "kubectl get deploy cleaner -n mercury -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "cleaner"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment has 2 containers",
+      "command": "kubectl get deploy cleaner -n mercury -o jsonpath='{.spec.template.spec.containers}' | python3 -c \"import sys,json; print(len(json.load(sys.stdin)))\"",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "logger-con container exists",
+      "command": "kubectl get deploy cleaner -n mercury -o jsonpath='{.spec.template.spec.containers[1].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "logger-con"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "logger-con uses busybox:1.35",
+      "command": "kubectl get deploy cleaner -n mercury -o jsonpath='{.spec.template.spec.containers[1].image}'",
+      "expected": {
+        "type": "equals",
+        "value": "busybox:1.35"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "logger-con mounts logs volume",
+      "command": "kubectl get deploy cleaner -n mercury -o jsonpath='{.spec.template.spec.containers[1].volumeMounts[0].name}'",
+      "expected": {
+        "type": "equals",
+        "value": "logs"
+      }
+    }
+  ]
+}

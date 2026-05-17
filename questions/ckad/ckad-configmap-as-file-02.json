@@ -1,0 +1,74 @@
+{
+  "id": "ckad-configmap-as-file-02",
+  "weight": 5,
+  "task": "Mount a ConfigMap as a file inside a Pod.\n\nIn namespace 'moon':\n\n  1. The file /opt/course/15/web-moon.html exists on the exam node with HTML content.\n     Create a ConfigMap named 'configmap-web-moon-html' from this file:\n     kubectl create configmap configmap-web-moon-html \\\n       --from-file=index.html=/opt/course/15/web-moon.html \\\n       -n moon\n\n     (The key in the ConfigMap will be 'index.html' and the value will be the file content)\n\n  2. Create a Deployment named 'web-moon' in namespace 'moon' with:\n     - Image: nginx:1.21\n     - 2 replicas\n     - Mount the ConfigMap as a volume at /usr/share/nginx/html\n       so that nginx serves the custom HTML page\n\nSetup: create the namespace and the HTML file:\n  kubectl create ns moon\n  echo '<html><body>Moon Landing</body></html>' > /opt/course/15/web-moon.html\n  mkdir -p /opt/course/15\n\nVerify:\n  kubectl get cm configmap-web-moon-html -n moon\n  kubectl exec -n moon <pod-name> -- cat /usr/share/nginx/html/index.html\n  # Should show the HTML content",
+  "namespace": "moon",
+  "hints": [
+    "kubectl create configmap --from-file=<key>=<file-path>  sets a specific key name",
+    "Mount ConfigMap as volume: volumes[0].configMap.name: configmap-web-moon-html",
+    "volumeMount path: /usr/share/nginx/html  (nginx document root)",
+    "Each key in the ConfigMap becomes a file in the mounted directory"
+  ],
+  "detailed_hints": [
+    "kubectl create configmap configmap-web-moon-html --from-file=index.html=/opt/course/15/web-moon.html -n moon",
+    "Deployment volume spec: {name: html-vol, configMap: {name: configmap-web-moon-html}}",
+    "VolumeMount: {name: html-vol, mountPath: /usr/share/nginx/html}",
+    "Verify: kubectl get cm configmap-web-moon-html -n moon -o jsonpath='{.data.index\\.html}'"
+  ],
+  "validators": [
+    {
+      "type": "kubectl",
+      "description": "ConfigMap configmap-web-moon-html exists in moon",
+      "command": "kubectl get cm configmap-web-moon-html -n moon -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "configmap-web-moon-html"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "ConfigMap has index.html key",
+      "command": "kubectl get cm configmap-web-moon-html -n moon -o jsonpath='{.data.index\\.html}'",
+      "expected": {
+        "type": "not_empty",
+        "value": ""
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment web-moon exists in moon",
+      "command": "kubectl get deploy web-moon -n moon -o jsonpath='{.metadata.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "web-moon"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment has 2 replicas",
+      "command": "kubectl get deploy web-moon -n moon -o jsonpath='{.spec.replicas}'",
+      "expected": {
+        "type": "equals",
+        "value": "2"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Deployment mounts volume at nginx html directory",
+      "command": "kubectl get deploy web-moon -n moon -o jsonpath='{.spec.template.spec.containers[0].volumeMounts[0].mountPath}'",
+      "expected": {
+        "type": "equals",
+        "value": "/usr/share/nginx/html"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "Volume references the ConfigMap",
+      "command": "kubectl get deploy web-moon -n moon -o jsonpath='{.spec.template.spec.volumes[0].configMap.name}'",
+      "expected": {
+        "type": "equals",
+        "value": "configmap-web-moon-html"
+      }
+    }
+  ]
+}
