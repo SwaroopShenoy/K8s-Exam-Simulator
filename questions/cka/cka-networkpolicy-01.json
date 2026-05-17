@@ -24,12 +24,21 @@
       }
     },
     {
-      "type": "yaml_file",
-      "description": "NetworkPolicy YAML is correct",
-      "filename": "backend-policy.yaml",
-      "required_fields": {
-        "kind": "NetworkPolicy",
-        "metadata.name": "backend-policy"
+      "type": "kubectl",
+      "description": "NetworkPolicy targets app=backend pods",
+      "command": "kubectl get networkpolicy backend-policy -n {namespace} -o jsonpath='{.spec.podSelector.matchLabels.app}'",
+      "expected": {
+        "type": "equals",
+        "value": "backend"
+      }
+    },
+    {
+      "type": "kubectl",
+      "description": "NetworkPolicy allows ingress on port 8080",
+      "command": "kubectl get networkpolicy backend-policy -n {namespace} -o jsonpath='{.spec.ingress[0].ports[0].port}'",
+      "expected": {
+        "type": "equals",
+        "value": "8080"
       }
     }
   ]

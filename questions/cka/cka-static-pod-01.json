@@ -17,7 +17,7 @@
     {
       "type": "kubectl",
       "description": "Static pod is Running",
-      "command": "kubectl get pods -o jsonpath='{.items[?(@.metadata.ownerReferences[0].kind==\"Node\")].status.phase}' | grep -c Running",
+      "command": "kubectl get pods --no-headers | grep static-nginx | grep Running",
       "expected": {
         "type": "not_empty",
         "value": ""
@@ -26,7 +26,7 @@
     {
       "type": "kubectl",
       "description": "Static pod uses nginx:1.21",
-      "command": "kubectl get pods -o jsonpath='{.items[?(@.metadata.ownerReferences[0].kind==\"Node\")].spec.containers[0].image}'",
+      "command": "kubectl get pods -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.containers[0].image}{\"\\n\"}{end}' | grep static-nginx",
       "expected": {
         "type": "contains",
         "value": "nginx:1.21"

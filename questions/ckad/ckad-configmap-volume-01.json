@@ -54,7 +54,7 @@
     {
       "type": "kubectl",
       "description": "Pod has DB_HOST env var from ConfigMap",
-      "command": "kubectl get pod config-demo -n {namespace} -o jsonpath='{.spec.containers[0].env[?(@.name==\"DB_HOST\")].valueFrom.configMapKeyRef.name}'",
+      "command": "kubectl get pod config-demo -n {namespace} -o jsonpath='{.spec.containers[0].env[0].valueFrom.configMapKeyRef.name}'",
       "expected": {
         "type": "equals",
         "value": "app-config"
