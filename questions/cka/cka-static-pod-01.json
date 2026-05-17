@@ -1,6 +1,7 @@
 {
   "id": "cka-static-pod-01",
   "weight": 5,
+  "requires": ["kubeadm"],
   "task": "Create a static pod named 'static-nginx' on the control plane node.\n\nRequirements:\n  - Image: nginx:1.21\n  - Place the manifest at: /etc/kubernetes/manifests/static-nginx.yaml\n  - The pod should appear in the default namespace\n\nStatic pods are managed directly by the kubelet — no Deployment or ReplicaSet needed.\nThe kubelet watches the manifests directory and automatically creates/deletes pods.",
   "namespace": "default",
   "hints": [

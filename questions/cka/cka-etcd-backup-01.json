@@ -1,6 +1,7 @@
 {
   "id": "cka-etcd-backup-01",
   "weight": 7,
+  "requires": ["kubeadm", "etcdctl"],
   "task": "Create a snapshot backup of the etcd database.\n\nRequirements:\n  - Save the backup to: /var/backup/etcd-snapshot.db\n  - Create the directory if it doesn't exist\n  - Use the etcd certificates from /etc/kubernetes/pki/etcd/\n\nThen verify the snapshot is valid.\n\nThe etcd endpoint is typically https://127.0.0.1:2379 on kubeadm clusters.\nCertificate paths:\n  --cacert  /etc/kubernetes/pki/etcd/ca.crt\n  --cert    /etc/kubernetes/pki/etcd/server.crt\n  --key     /etc/kubernetes/pki/etcd/server.key",
   "namespace": "kube-system",
   "hints": [

@@ -15,6 +15,11 @@
     "Monitor: kubectl rollout status deployment/api-new-c32 -n neptune",
     "kubectl get pods -n neptune  -- all pods should be Running after rollback"
   ],
+  "setup": [
+    "kubectl create ns neptune 2>/dev/null || true",
+    "kubectl create deploy api-new-c32 --image=nginx:1.19 -n neptune --replicas=2 2>/dev/null || true",
+    "kubectl set image deploy/api-new-c32 nginx=ngnix:1.21 -n neptune 2>/dev/null || true"
+  ],
   "validators": [
     {
       "type": "kubectl",

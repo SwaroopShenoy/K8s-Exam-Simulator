@@ -1,6 +1,7 @@
 {
   "id": "cka-etcd-restore-01",
   "weight": 8,
+  "requires": ["kubeadm", "etcdctl"],
   "task": "Perform an etcd backup and then restore it to verify cluster recovery.\n\nContext: You are working on the control plane node of a kubeadm cluster.\n\nStep 1 - Take a snapshot backup:\n  ETCDCTL_API=3 etcdctl snapshot save /opt/etcd-backup.db \\\n    --endpoints=https://127.0.0.1:2379 \\\n    --cacert=/etc/kubernetes/pki/etcd/ca.crt \\\n    --cert=/etc/kubernetes/pki/etcd/server.crt \\\n    --key=/etc/kubernetes/pki/etcd/server.key\n\nStep 2 - Create a test resource to confirm it disappears after restore:\n  kubectl create namespace backup-test\n  kubectl run test-pod --image=nginx:1.21 -n backup-test\n\nStep 3 - Restore the snapshot to a new data directory:\n  ETCDCTL_API=3 etcdctl snapshot restore /opt/etcd-backup.db \\\n    --data-dir=/var/lib/etcd-restored\n\nStep 4 - Update the etcd static pod manifest to use the restored data dir:\n  Edit /etc/kubernetes/manifests/etcd.yaml\n  Change the hostPath volume from /var/lib/etcd to /var/lib/etcd-restored\n\nStep 5 - Wait for etcd to restart (~30s), then verify cluster is working:\n  kubectl get nodes\n  kubectl get pods -n backup-test   # namespace should NOT exist (pre-backup state)\n\nNote: After editing etcd.yaml the kubelet will automatically restart the etcd pod.\nUse: watch crictl ps  to monitor the restart.",
   "namespace": "kube-system",
   "hints": [

@@ -14,6 +14,12 @@
     "Annotation with spaces: 'protected=do not delete this pod'  (single quotes around value)",
     "Verify with: kubectl get pods -n sun -o jsonpath='{range .items[*]}{.metadata.name}: {.metadata.labels}{\"\\n\"}{end}'"
   ],
+  "setup": [
+    "kubectl create ns sun 2>/dev/null || true",
+    "kubectl run sun-worker1 --image=busybox:1.35 -n sun --labels=type=worker -- sleep 3600 2>/dev/null || true",
+    "kubectl run sun-runner1 --image=busybox:1.35 -n sun --labels=type=runner -- sleep 3600 2>/dev/null || true",
+    "kubectl run sun-idle1 --image=busybox:1.35 -n sun --labels=type=idle -- sleep 3600 2>/dev/null || true"
+  ],
   "validators": [
     {
       "type": "kubectl",

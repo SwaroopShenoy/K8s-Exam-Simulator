@@ -19,6 +19,11 @@
     "    mountPath: /var/log",
     "The volume 'logs' must be declared in spec.template.spec.volumes too"
   ],
+  "setup": [
+    "kubectl create ns mercury 2>/dev/null || true",
+    "kubectl create deploy cleaner --image=busybox:1.35 -n mercury -- /bin/sh -c 'i=0; while true; do echo \"$(date): cleaning item $i\" >> /var/log/cleaner.log; i=$((i+1)); sleep 2; done' 2>/dev/null || true",
+    "kubectl patch deploy cleaner -n mercury --type=json -p='[{\"op\":\"add\",\"path\":\"/spec/template/spec/volumes\",\"value\":[{\"name\":\"logs\",\"emptyDir\":{}}]},{\"op\":\"add\",\"path\":\"/spec/template/spec/containers/0/volumeMounts\",\"value\":[{\"name\":\"logs\",\"mountPath\":\"/var/log\"}]}]' 2>/dev/null || true"
+  ],
   "validators": [
     {
       "type": "kubectl",

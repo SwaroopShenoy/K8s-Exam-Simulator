@@ -1,6 +1,7 @@
 {
   "id": "cka-kubeadm-upgrade-02",
   "weight": 10,
+  "requires": ["kubeadm", "multi-node"],
   "task": "Upgrade worker node 'node01' to match the control plane Kubernetes version.\n\nContext: The control plane is already on v1.31.0. node01 is on an older version.\nYou have SSH access to node01.\n\nOn the CONTROL PLANE — drain node01:\n  kubectl drain node01 --ignore-daemonsets --delete-emptydir-data\n\nOn NODE01 (SSH in: ssh node01) — upgrade kubeadm, kubelet, kubectl:\n  # Unhold packages\n  apt-mark unhold kubeadm kubelet kubectl\n\n  # Install matching versions\n  apt-get update\n  apt-get install -y kubeadm=1.31.0-1.1 kubelet=1.31.0-1.1 kubectl=1.31.0-1.1\n\n  # Re-hold\n  apt-mark hold kubeadm kubelet kubectl\n\n  # Apply node upgrade\n  kubeadm upgrade node\n\n  # Restart kubelet\n  systemctl daemon-reload\n  systemctl restart kubelet\n\nOn the CONTROL PLANE — uncordon node01:\n  kubectl uncordon node01\n\nVerify:\n  kubectl get nodes\n  # All nodes should show v1.31.0 and STATUS=Ready",
   "namespace": "kube-system",
   "hints": [

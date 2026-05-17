@@ -14,6 +14,12 @@
     "spec.egress[0]: {to: [{podSelector: {matchLabels: {app: db1}}}], ports: [{port: 1111}]}",
     "spec.egress[1]: {to: [{podSelector: {matchLabels: {app: db2}}}], ports: [{port: 2222}]}"
   ],
+  "setup": [
+    "kubectl create ns project-snake 2>/dev/null || true",
+    "kubectl run backend --image=nginx:1.21 -n project-snake --labels=app=backend 2>/dev/null || true",
+    "kubectl run db1 --image=nginx:1.21 -n project-snake --labels=app=db1 2>/dev/null || true",
+    "kubectl run db2 --image=nginx:1.21 -n project-snake --labels=app=db2 2>/dev/null || true"
+  ],
   "validators": [
     {
       "type": "kubectl",
