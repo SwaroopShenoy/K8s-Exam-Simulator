@@ -1,6 +1,6 @@
 # K8s Exam Simulator
 
-A terminal-based CKA/CKAD practice tool with real cluster validation — 30 questions, timed, shuffled, scored.
+A terminal-based CKA/CKAD practice tool with real cluster validation — 57 questions, timed, shuffled, scored.
 
 ## Prerequisites
 
@@ -41,9 +41,12 @@ python3 simulator.py cka                    # full exam, 120 min, shuffled
 python3 simulator.py ckad --questions 5     # quick 5-question session
 python3 simulator.py cka --time 45          # 45-minute drill
 python3 simulator.py cka --no-shuffle       # questions in filename order
+python3 simulator.py cka --all              # include questions needing kubeadm/helm/etc.
 python3 simulator.py validate cka           # score workspace without exam session
-python3 simulator.py list cka               # list all available questions
+python3 simulator.py list cka               # list available questions (skipped ones shown)
 ```
+
+Questions that require tools or cluster types not present in your environment (kubeadm, etcdctl, helm, multi-node, Gateway API) are skipped automatically. Use `--all` to override.
 
 ### During the exam
 
@@ -80,13 +83,19 @@ questions/
 {
   "id": "cka-rbac-02",
   "weight": 7,
+  "requires": ["kubeadm"],           // optional — skip if capability absent
   "task": "Full task description shown during exam...",
   "namespace": "default",
   "hints": ["Shown immediately with the question"],
   "detailed_hints": ["Shown when user types h"],
+  "setup": [                         // optional — shell commands run before question
+    "kubectl create ns project-foo 2>/dev/null || true"
+  ],
   "validators": [...]
 }
 ```
+
+`requires` values: `kubeadm`, `etcdctl`, `helm`, `multi-node`, `gateway-api`.
 
 ### Validator types
 
